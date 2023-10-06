@@ -8,18 +8,18 @@ fn main() {
     let _ = eframe::run_native(
         "My egui App",
         native_options,
-        Box::new(|cc| Box::new(MyEguiApp::new(cc))),
+        Box::new(|cc| Box::new(Connect4Xyz::new(cc))),
     );
 }
 
 #[derive(Default)]
-struct MyEguiApp {
+struct Connect4Xyz {
     board_state: Vec<(i32, i32, i32)>,
     player_turn: i32,
     column_state: HashMap<i32, i32>,
 }
 
-impl MyEguiApp {
+impl Connect4Xyz {
     fn new(_cc: &eframe::CreationContext<'_>) -> Self {
         let mut column_state = HashMap::new();
 
@@ -35,8 +35,8 @@ impl MyEguiApp {
     }
 }
 
-impl eframe::App for MyEguiApp {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+impl eframe::App for Connect4Xyz {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             let empty_button = "○";
             let p1_button = "⏺";
