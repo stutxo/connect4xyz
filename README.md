@@ -1,11 +1,11 @@
 # connect4.xyz
 
 ```
-trunk serve --public-url /  --port=1334
+RUSTFLAGS=--cfg=web_sys_unstable_apis trunk serve --public-url /  --port=1334
 ```
 
 Build
 ```
-trunk build --release
+RUSTFLAGS=--cfg=web_sys_unstable_apis trunk build --release
 ```
 

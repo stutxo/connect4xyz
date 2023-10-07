@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use egui::FontFamily::Proportional;
 use egui::{FontId, TextStyle::*};
+use log::info;
 
 #[derive(serde::Deserialize, serde::Serialize, Default)]
 pub struct Connect4App {
@@ -37,7 +38,12 @@ impl eframe::App for Connect4App {
     //     eframe::set_value(storage, eframe::APP_KEY, self);
     // }
 
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        let info = frame.info();
+
+        let url = &info.web_info.location.url;
+        info!("URL: {}", url);
+
         if !self.game_start {
             share_link(ctx, self);
         } else {
@@ -53,9 +59,11 @@ fn share_link(ctx: &egui::Context, game: &mut Connect4App) {
         .anchor(egui::Align2::CENTER_TOP, egui::Vec2::ZERO)
         .show(ctx, |ui| {
             ui.horizontal(|ui| {
-                ui.label("https://connect4.xyz/324234");
+                let url = "https://connect4.xyz/324234";
+                ui.label(url);
                 if ui.button("📋").clicked() {
-                    game.game_start = true;
+                    ui.output_mut(|o| o.copied_text = url.to_string());
+                    // game.game_start = true;
                 };
             });
             ui.spacing();
