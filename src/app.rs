@@ -70,7 +70,7 @@ fn game_board(ctx: &egui::Context, game: &mut Connect4App) {
     style.text_styles = [
         (Heading, FontId::new(50.0, Proportional)),
         (Body, FontId::new(18.0, Proportional)),
-        (Button, FontId::new(50.0, Proportional)),
+        (Button, FontId::new(30.0, Proportional)),
     ]
     .into();
 
