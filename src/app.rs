@@ -46,7 +46,7 @@ impl eframe::App for Connect4App {
     }
 }
 
-fn share_link(ctx: &egui::Context, _game: &mut Connect4App) {
+fn share_link(ctx: &egui::Context, game: &mut Connect4App) {
     egui::Window::new("connect4.xyz")
         .resizable(false)
         .collapsible(false)
@@ -54,7 +54,9 @@ fn share_link(ctx: &egui::Context, _game: &mut Connect4App) {
         .show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.label("https://connect4.xyz/324234");
-                if ui.button("📋").clicked() {};
+                if ui.button("📋").clicked() {
+                    game.game_start = true;
+                };
             });
             ui.spacing();
             ui.spacing();
