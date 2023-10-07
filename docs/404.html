@@ -1,22 +1,24 @@
-<!DOCTYPE html><html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<!DOCTYPE html>
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 
 <!-- Disable zooming: -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
-
+<head>
     <!-- change this to your project name -->
     <title>connect4️.xyz</title>
 
     <!-- config for our rust wasm binary. go to https://trunkrs.dev/assets/#rust for more customization -->
-    <script type="module">import init from './connect4xyz-dfcc2ef438e162a4.js';init('./connect4xyz-dfcc2ef438e162a4_bg.wasm');</script>
+    <link data-trunk rel="rust" data-wasm-opt="s" />
     <!-- this is the base url relative to which other urls will be constructed. trunk will insert this from the public-url option -->
-    <base href="./">
+    <base data-trunk-public-url />
 
-    <link rel="icon" href="./favicon-62f8607a7e9954c.ico">
+    <link data-trunk rel="icon" href="assets/favicon.ico">
 
 
-    
-    
+    <link data-trunk rel="copy-file" href="./CNAME" />
+    <link data-trunk rel="copy-file" href="assets/sw.js" />
 
 
 
@@ -107,9 +109,7 @@
             }
         }
     </style>
-
-<link rel="preload" href="./connect4xyz-dfcc2ef438e162a4_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
-<link rel="modulepreload" href="./connect4xyz-dfcc2ef438e162a4.js"></head>
+</head>
 
 <body>
     <!-- The WASM code will resize the canvas dynamically -->
@@ -126,9 +126,8 @@
             });
         }
     </script>
+</body>
 
+</html>
 
-
-
-
-</body></html><!-- Powered by egui: https://github.com/emilk/egui/ -->
+<!-- Powered by egui: https://github.com/emilk/egui/ -->

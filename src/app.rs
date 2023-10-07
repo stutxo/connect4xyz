@@ -33,9 +33,9 @@ impl Connect4App {
 }
 
 impl eframe::App for Connect4App {
-    fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        eframe::set_value(storage, eframe::APP_KEY, self);
-    }
+    // fn save(&mut self, storage: &mut dyn eframe::Storage) {
+    //     eframe::set_value(storage, eframe::APP_KEY, self);
+    // }
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         if !self.game_start {
@@ -68,7 +68,7 @@ fn game_board(ctx: &egui::Context, game: &mut Connect4App) {
     let mut style = (*ctx.style()).clone();
 
     style.text_styles = [
-        (Heading, FontId::new(50.0, Proportional)),
+        (Heading, FontId::new(30.0, Proportional)),
         (Body, FontId::new(18.0, Proportional)),
         (Button, FontId::new(30.0, Proportional)),
     ]
