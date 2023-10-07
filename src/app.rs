@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use egui::FontFamily::Proportional;
 use egui::{FontId, TextStyle::*};
 use log::info;
+use web_sys::window;
 
 #[derive(serde::Deserialize, serde::Serialize, Default)]
 pub struct Connect4App {
@@ -59,11 +60,21 @@ fn share_link(ctx: &egui::Context, game: &mut Connect4App) {
         .anchor(egui::Align2::CENTER_TOP, egui::Vec2::ZERO)
         .show(ctx, |ui| {
             ui.horizontal(|ui| {
-                let url = "https://connect4.xyz/324234";
-                ui.label(url);
+                let location = window().unwrap().location();
+
+                let url = location.href().unwrap();
+
+                ui.label(url.clone());
+
                 if ui.button("📋").clicked() {
-                    ui.output_mut(|o| o.copied_text = url.to_string());
+                    // ui.output_mut(|o| o.copied_text = url.to_string());
                     // game.game_start = true;
+
+                    // //must be run with RUSTFLAGS=--cfg=web_sys_unstable_apis for this to work
+
+                    if let Some(clipboard) = window().unwrap().navigator().clipboard() {
+                        clipboard.write_text(&url);
+                    }
                 };
             });
             ui.spacing();
