@@ -1,10 +1,13 @@
 use std::collections::HashMap;
 
 use egui::FontFamily::Proportional;
-use egui::{FontId, TextEdit, TextStyle::*};
+use egui::{FontId, OpenUrl, TextEdit, TextStyle::*};
 use log::info;
+use nanoid::nanoid;
 #[cfg(target_arch = "wasm32")]
-use web_sys::window;
+use wasm_bindgen::JsValue;
+#[cfg(target_arch = "wasm32")]
+use web_sys::{window, History};
 
 #[derive(serde::Deserialize, serde::Serialize, Default)]
 pub struct Connect4App {
@@ -12,6 +15,7 @@ pub struct Connect4App {
     player_turn: i32,
     column_state: HashMap<i32, i32>,
     game_start: bool,
+    url_set: bool,
 }
 
 impl Connect4App {
@@ -31,6 +35,7 @@ impl Connect4App {
             player_turn: 1,
             column_state,
             game_start: false,
+            url_set: false,
         }
     }
 }
@@ -42,6 +47,25 @@ impl eframe::App for Connect4App {
 
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         if !self.game_start {
+            #[cfg(target_arch = "wasm32")]
+            if !is_game_id_present() {
+                let game_id = nanoid!(8);
+
+                let location = web_sys::window().unwrap().location();
+
+                let host = location.host().unwrap();
+
+                let protocol = location.protocol().unwrap();
+
+                let full_url = format!("{protocol}//{host}/{game_id}");
+                #[cfg(target_arch = "wasm32")]
+                // Changing the URL without reloading
+                let history: History = window().unwrap().history().unwrap();
+                history
+                    .push_state_with_url(&JsValue::from_str("New Game"), "", Some(&full_url))
+                    .expect("pushState failed");
+            };
+
             share_link(ctx, self);
         } else {
             game_board(ctx, self);
@@ -55,20 +79,15 @@ fn share_link(ctx: &egui::Context, game: &mut Connect4App) {
         .collapsible(false)
         .anchor(egui::Align2::CENTER_TOP, egui::Vec2::ZERO)
         .show(ctx, |ui| {
+            ui.label("Share this URL with your friend! ");
             ui.horizontal(|ui| {
                 #[cfg(target_arch = "wasm32")]
                 let location = window().unwrap().location();
                 #[cfg(target_arch = "wasm32")]
-                let mut url = location.href().unwrap();
-
-                ui.add(
-                    TextEdit::multiline(&mut url)
-                        .min_size([0.0, 0.0].into())
-                        .desired_rows(1),
-                );
-
+                let url = location.href().unwrap();
+                #[cfg(target_arch = "wasm32")]
+                ui.label(url.clone());
                 if ui.button("📋").clicked() {
-                    // ui.output_mut(|o| o.copied_text = url.to_string());
                     // game.game_start = true;
 
                     // //must be run with RUSTFLAGS=--cfg=web_sys_unstable_apis for this to work
@@ -132,4 +151,14 @@ fn game_board(ctx: &egui::Context, game: &mut Connect4App) {
                 });
             }
         });
+}
+
+pub fn is_game_id_present() -> bool {
+    #[cfg(target_arch = "wasm32")]
+    {
+        if let Some(location) = window().and_then(|w| w.location().pathname().ok()) {
+            return !location.is_empty() && location != "/";
+        }
+    }
+    false
 }

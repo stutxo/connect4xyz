@@ -13,8 +13,9 @@ eframe = { version = "0.23.0", default-features = false, features = [
     "persistence",   # Enable restoring app state when restarting the app.
 ] }
 log = "0.4.20"
-web-sys = "0.3.64"
-
+web-sys = { version = "0.3.64", features = ['History'] }
+nanoid = "0.4.0"
+getrandom = { version = "0.2.10", features = ["js"] }
 
 # You only need serde if you want app persistence:
 serde = { version = "1.0.188", features = ["derive"] }
@@ -26,6 +27,7 @@ env_logger = "0.10"
 # web:
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = "0.4.37"
+wasm-bindgen = "0.2.87"
 
 
 [profile.release]
@@ -35,7 +37,3 @@ lto = true
 # Optimize all dependencies even in debug builds:
 [profile.dev.package."*"]
 opt-level = 2
-
-[patch.crates-io]
-egui = { git = "https://github.com/emilk/egui", branch = "master" }
-eframe = { git = "https://github.com/emilk/egui", branch = "master" }
