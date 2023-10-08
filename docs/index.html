@@ -1,22 +1,27 @@
-<!DOCTYPE html><html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<!DOCTYPE html>
+<html>
 
-<!-- Disable zooming: -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+    <!-- Disable zooming: -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
 
     <!-- change this to your project name -->
     <title>connect4.xyz</title>
 
     <!-- config for our rust wasm binary. go to https://trunkrs.dev/assets/#rust for more customization -->
-    <script type="module">import init from './connect4xyz-4b41d0d6aceb7f8b.js';init('./connect4xyz-4b41d0d6aceb7f8b_bg.wasm');</script>
+    <script
+        type="module">import init from '/connect4xyz-11954291438f9227.js'; init('/connect4xyz-11954291438f9227_bg.wasm');</script>
     <!-- this is the base url relative to which other urls will be constructed. trunk will insert this from the public-url option -->
-    <base href="./">
+    <base href="/">
 
-    <link rel="icon" href="./favicon-62f8607a7e9954c.ico">
+    <link rel="icon" href="/favicon-62f8607a7e9954c.ico">
 
-    
-    
-    
+
+
+
 
 
 
@@ -108,8 +113,9 @@
         }
     </style>
 
-<link rel="preload" href="./connect4xyz-4b41d0d6aceb7f8b_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
-<link rel="modulepreload" href="./connect4xyz-4b41d0d6aceb7f8b.js"></head>
+    <link rel="preload" href="/connect4xyz-11954291438f9227_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
+    <link rel="modulepreload" href="/connect4xyz-11954291438f9227.js">
+</head>
 
 <body>
     <!-- The WASM code will resize the canvas dynamically -->
@@ -131,4 +137,34 @@
 
 
 
-</body></html><!-- Powered by egui: https://github.com/emilk/egui/ -->
+    <script>(function () {
+            var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            var url = protocol + '//' + window.location.host + '/_trunk/ws';
+            var poll_interval = 5000;
+            var reload_upon_connect = () => {
+                window.setTimeout(
+                    () => {
+                        // when we successfully reconnect, we'll force a
+                        // reload (since we presumably lost connection to
+                        // trunk due to it being killed, so it will have
+                        // rebuilt on restart)
+                        var ws = new WebSocket(url);
+                        ws.onopen = () => window.location.reload();
+                        ws.onclose = reload_upon_connect;
+                    },
+                    poll_interval);
+            };
+
+            var ws = new WebSocket(url);
+            ws.onmessage = (ev) => {
+                const msg = JSON.parse(ev.data);
+                if (msg.reload) {
+                    window.location.reload();
+                }
+            };
+            ws.onclose = reload_upon_connect;
+        })()
+    </script>
+</body>
+
+</html><!-- Powered by egui: https://github.com/emilk/egui/ -->
