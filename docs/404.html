@@ -1,27 +1,22 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html><html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-
-    <!-- Disable zooming: -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<!-- Disable zooming: -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
 
     <!-- change this to your project name -->
     <title>connect4.xyz</title>
 
     <!-- config for our rust wasm binary. go to https://trunkrs.dev/assets/#rust for more customization -->
-    <script
-        type="module">import init from './connect4xyz-4b41d0d6aceb7f8b.js'; init('./connect4xyz-4b41d0d6aceb7f8b_bg.wasm');</script>
+    <script type="module">import init from './connect4xyz-2e32df917a6dd29a.js';init('./connect4xyz-2e32df917a6dd29a_bg.wasm');</script>
     <!-- this is the base url relative to which other urls will be constructed. trunk will insert this from the public-url option -->
     <base href="./">
 
     <link rel="icon" href="./favicon-62f8607a7e9954c.ico">
 
-
-
-
+    
+    
+    
 
 
 
@@ -35,14 +30,14 @@
 
         body {
             /* Light mode background color for what is not covered by the egui canvas,
-                or where the egui canvas is translucent. */
+            or where the egui canvas is translucent. */
             background: #909090;
         }
 
         @media (prefers-color-scheme: dark) {
             body {
                 /* Dark mode background color for what is not covered by the egui canvas,
-                    or where the egui canvas is translucent. */
+                or where the egui canvas is translucent. */
                 background: #404040;
             }
         }
@@ -113,9 +108,8 @@
         }
     </style>
 
-    <link rel="preload" href="./connect4xyz-4b41d0d6aceb7f8b_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
-    <link rel="modulepreload" href="./connect4xyz-4b41d0d6aceb7f8b.js">
-</head>
+<link rel="preload" href="./connect4xyz-2e32df917a6dd29a_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
+<link rel="modulepreload" href="./connect4xyz-2e32df917a6dd29a.js"></head>
 
 <body>
     <!-- The WASM code will resize the canvas dynamically -->
@@ -137,6 +131,4 @@
 
 
 
-</body>
-
-</html><!-- Powered by egui: https://github.com/emilk/egui/ -->
+</body></html><!-- Powered by egui: https://github.com/emilk/egui/ -->

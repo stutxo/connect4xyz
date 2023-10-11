@@ -16,6 +16,11 @@ log = "0.4.20"
 web-sys = { version = "0.3.64", features = ['History'] }
 nanoid = "0.4.0"
 getrandom = { version = "0.2.10", features = ["js"] }
+nostr-sdk = "0.24"
+gloo-net = "0.4.0"
+futures = "0.3.25"
+wasm-bindgen-futures = "0.4.37"
+
 
 # You only need serde if you want app persistence:
 serde = { version = "1.0.188", features = ["derive"] }
@@ -26,7 +31,7 @@ env_logger = "0.10"
 
 # web:
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen-futures = "0.4.37"
+
 wasm-bindgen = "0.2.87"
 
 
