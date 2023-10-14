@@ -74,7 +74,7 @@ impl eframe::App for Connect4App {
     // }
 
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        if !self.game_start.try_lock().unwrap().clone() {
+        if !*self.game_start.try_lock().unwrap() {
             #[cfg(target_arch = "wasm32")]
             if !is_game_id_present() {
                 let game_id = nanoid!(8);
@@ -94,37 +94,6 @@ impl eframe::App for Connect4App {
                     .expect("pushState failed");
             };
 
-            if !self.connect_nostr {
-                self.connect_nostr = true;
-
-                let nostr_keys = self.nostr_keys.clone();
-
-                spawn_local(async move {
-                    let location = web_sys::window().unwrap().location();
-
-                    let tag = location.pathname().unwrap().to_string();
-
-                    let relay = "wss://relay.damus.io".to_string();
-
-                    let new_game = serde_json::to_string(&tag).expect("serializing request");
-
-                    let broadcast_peer = ClientMessage::new_event(
-                        EventBuilder::new_text_note(new_game, &[Tag::Hashtag(tag.clone())])
-                            .to_event(&*nostr_keys.lock().await)
-                            .unwrap(),
-                    );
-
-                    warn!("LIST GAME {:?}", broadcast_peer);
-
-                    let client = Client::new(&*nostr_keys.lock().await);
-                    #[cfg(target_arch = "wasm32")]
-                    client.add_relay(relay).await.unwrap();
-
-                    client.connect().await;
-
-                    client.send_msg(broadcast_peer).await.unwrap();
-                });
-            }
             share_link(ctx, self);
         };
         game_board(ctx, self);
@@ -154,6 +123,10 @@ fn share_link(ctx: &egui::Context, game: &mut Connect4App) {
                         clipboard.write_text(&url);
                     }
                 };
+                #[cfg(target_arch = "wasm32")]
+                if let Some(clipboard) = window().unwrap().navigator().clipboard() {
+                    clipboard.write_text(&url);
+                }
             });
             ui.spacing();
             ui.spacing();
@@ -172,13 +145,24 @@ fn share_link(ctx: &egui::Context, game: &mut Connect4App) {
 
                     let tag = location.pathname().unwrap().to_string();
 
-                    let relay = "wss://relay.damus.io".to_string();
-
                     let client = Client::new(&*nostr_keys.lock().await);
+
                     #[cfg(target_arch = "wasm32")]
-                    client.add_relay(relay).await.unwrap();
+                    client.add_relay("wss://relay.damus.io").await.unwrap();
+                    #[cfg(target_arch = "wasm32")]
+                    client.add_relay("wss://nostr.wine").await.unwrap();
 
                     client.connect().await;
+
+                    let new_game = serde_json::to_string(&tag.clone()).expect("p1");
+
+                    let broadcast_peer = ClientMessage::new_event(
+                        EventBuilder::new_text_note(new_game, &[Tag::Hashtag(tag.clone())])
+                            .to_event(&*nostr_keys.lock().await)
+                            .unwrap(),
+                    );
+
+                    client.send_msg(broadcast_peer).await.unwrap();
 
                     let subscription = Filter::new().since(Timestamp::now()).hashtag(tag.clone());
                     client.subscribe(vec![subscription]).await;
@@ -187,13 +171,13 @@ fn share_link(ctx: &egui::Context, game: &mut Connect4App) {
                         .handle_notifications(|notification| async {
                             if let RelayPoolNotification::Event(_url, event) = notification {
                                 if event.pubkey != nostr_keys.lock().await.public_key() {
-                                    info!("PLAYER 1 CONNECTED {:?}", event);
+                                    info!("PLAYER CONNECTED {:?}", event);
                                     let _ = game_tx
                                         .lock()
                                         .await
-                                        .try_send("player 1 joined".to_string());
+                                        .try_send("player 2 joined".to_string());
 
-                                    let new_game = serde_json::to_string(&tag.clone()).expect("p1");
+                                    let new_game = serde_json::to_string(&tag.clone()).expect("p2");
 
                                     let broadcast_peer = ClientMessage::new_event(
                                         EventBuilder::new_text_note(
