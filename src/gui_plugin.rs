@@ -2,10 +2,10 @@ use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
 
 use crate::components::Coin;
 
-const COIN_SIZE: Vec2 = Vec2::new(20.0, 20.0);
+const COIN_SIZE: Vec2 = Vec2::new(40.0, 40.0);
 const COLUMNS: usize = 7;
 const ROWS: usize = 7;
-const SPACING: f32 = 1.0;
+const SPACING: f32 = 5.0;
 pub struct Connect4GuiPlugin;
 
 impl Plugin for Connect4GuiPlugin {
@@ -98,7 +98,7 @@ fn place(
             let position = get_position(cursor, window);
 
             for (coin, _, transform, _) in board_pos.iter() {
-                if position.distance(transform.translation.truncate()) < 10.0 {
+                if position.distance(transform.translation.truncate()) < 20.0 {
                     hovered_column = Some(coin.c);
                     break;
                 }
@@ -110,7 +110,7 @@ fn place(
         if let Some(window) = windows.iter().next() {
             let position = get_position(touch.position(), window);
             for (coin, _, transform, _) in board_pos.iter() {
-                if position.distance(transform.translation.truncate()) < 10.0 {
+                if position.distance(transform.translation.truncate()) < 20.0 {
                     hovered_column = Some(coin.c);
                     break;
                 }
