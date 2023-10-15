@@ -1,36 +1,25 @@
-#![warn(clippy::all, rust_2018_idioms)]
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+use bevy::prelude::*;
+use gui_plugin::Connect4GuiPlugin;
 
-#[cfg(not(target_arch = "wasm32"))]
-fn main() -> eframe::Result<()> {
-    env_logger::init();
+mod components;
+mod gui_plugin;
+mod resources;
 
-    let native_options = eframe::NativeOptions {
-        initial_window_size: Some([400.0, 300.0].into()),
-        min_window_size: Some([300.0, 220.0].into()),
-        ..Default::default()
-    };
-    eframe::run_native(
-        "connect4xyz",
-        native_options,
-        Box::new(|cc| Box::new(connect4xyz::Connect4App::new(cc))),
-    )
-}
-
-#[cfg(target_arch = "wasm32")]
 fn main() {
-    eframe::WebLogger::init(log::LevelFilter::Debug).ok();
-
-    let web_options = eframe::WebOptions::default();
-
-    wasm_bindgen_futures::spawn_local(async {
-        eframe::WebRunner::new()
-            .start(
-                "connect4xyz",
-                web_options,
-                Box::new(|cc| Box::new(connect4xyz::Connect4App::new(cc))),
-            )
-            .await
-            .expect("failed to start eframe");
-    });
+    App::new()
+        .add_plugins((
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: "connect4.xyz".to_string(),
+                        fit_canvas_to_parent: true,
+                        prevent_default_event_handling: false,
+                        ..default()
+                    }),
+                    ..default()
+                })
+                .set(ImagePlugin::default_nearest()),
+            Connect4GuiPlugin,
+        ))
+        .run();
 }
