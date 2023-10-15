@@ -1,6 +1,6 @@
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
 
-use crate::{components::Coin, resources::GameState};
+use crate::components::Coin;
 
 const COIN_SIZE: Vec2 = Vec2::new(20.0, 20.0);
 const COLUMNS: usize = 7;
@@ -10,7 +10,7 @@ pub struct Connect4GuiPlugin;
 
 impl Plugin for Connect4GuiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup).add_systems(Update, (place));
+        app.add_systems(Startup, setup).add_systems(Update, place);
     }
 }
 
@@ -72,7 +72,6 @@ fn place(
     mut board_pos: Query<(&mut Coin, &mut Sprite, &Transform, &mut Visibility)>,
     windows: Query<&Window>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
-    mut game_state: ResMut<GameState>,
 ) {
     let (camera, camera_transform) = camera_query.single();
 
