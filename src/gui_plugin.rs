@@ -75,6 +75,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         String::new(),
         TextStyle {
             color: Color::BLACK,
+            font_size: 20.0,
             ..Default::default()
         },
     )]);
@@ -289,7 +290,7 @@ fn move_coin(
 
                 if current.y > target.y {
                     board.in_progress = true;
-                    current.y -= 1.0 * 10.;
+                    current.y -= 1.0 * 5.;
                 } else {
                     current.y = target.y;
                     board.in_progress = false;
