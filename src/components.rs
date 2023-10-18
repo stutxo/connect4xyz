@@ -1,38 +1,27 @@
 use bevy::prelude::Component;
 
+use crate::resources::PlayerMove;
+
 #[derive(Component)]
-pub struct CoinPos {
+pub struct CoinSlot {
     pub c: usize,
     pub r: usize,
 }
 
-impl CoinPos {
+impl CoinSlot {
     pub fn new(c: usize, r: usize) -> Self {
         Self { c, r }
     }
 }
 
 #[derive(Component)]
-pub struct Player {
-    pub player: i32,
+pub struct CoinMove {
+    pub player_move: PlayerMove,
 }
 
-impl Player {
-    pub fn new(player: i32) -> Self {
-        Self { player }
-    }
-}
-
-#[derive(Component)]
-pub struct Coin {
-    pub location: (usize, usize, usize),
-}
-
-impl Coin {
-    pub fn new(player: usize, column: usize, row: usize) -> Self {
-        Self {
-            location: (player, column, row),
-        }
+impl CoinMove {
+    pub fn new(player_move: PlayerMove) -> Self {
+        Self { player_move }
     }
 }
 

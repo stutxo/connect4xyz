@@ -1,8 +1,8 @@
-use bevy::{core_pipeline::clear_color::ClearColorConfig, log, prelude::*, ui::update};
+use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
 
 use crate::{
-    components::{Coin, CoinPos, TopRow},
-    resources::{Board, BoardState},
+    components::{CoinMove, CoinSlot, TopRow},
+    resources::{Board, PlayerMove},
 };
 
 const COIN_SIZE: Vec2 = Vec2::new(40.0, 40.0);
@@ -13,8 +13,7 @@ pub struct Connect4GuiPlugin;
 
 impl Plugin for Connect4GuiPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(BoardState::new(1))
-            .insert_resource(Board::new())
+        app.insert_resource(Board::new())
             .add_systems(Startup, setup)
             .add_systems(Update, (place, move_coin));
     }
@@ -48,7 +47,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                         ),
                         ..default()
                     })
-                    .insert(CoinPos::new(column, row));
+                    .insert(CoinSlot::new(column, row));
             } else {
                 commands
                     .spawn(SpriteBundle {
@@ -65,7 +64,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                         ..default()
                     })
                     .insert(Visibility::Hidden)
-                    .insert(CoinPos::new(column, row))
+                    .insert(CoinSlot::new(column, row))
                     .insert(TopRow());
             }
         }
@@ -76,10 +75,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 fn place(
     touches: Res<Touches>,
     mouse: Res<Input<MouseButton>>,
-    mut board_pos: Query<(&mut CoinPos, &mut Sprite, &Transform, &mut Visibility)>,
+    mut board_pos: Query<(&mut CoinSlot, &mut Sprite, &Transform, &mut Visibility)>,
     windows: Query<&Window>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
-    mut board_state: ResMut<BoardState>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut update_sprite: Query<&mut Handle<Image>, With<TopRow>>,
@@ -133,7 +131,7 @@ fn place(
         }
     }
 
-    for (coin, mut sprite, transform, mut visibility) in board_pos.iter_mut() {
+    for (coin, mut sprite, _, mut visibility) in board_pos.iter_mut() {
         if Some(coin.c) == hovered_column {
             if coin.r == 6 {
                 *visibility = Visibility::Visible;
@@ -154,61 +152,58 @@ fn place(
                 || mouse.just_pressed(MouseButton::Right)
                 || touches.iter_just_pressed().any(|_| true)
             {
-                let coin_location = *board.column_state.get(&coin.c).unwrap_or(&(6 - 1));
-                info!("coin_location: {}", coin_location);
+                let coin_location = *board.column_state.get(&coin.c).unwrap_or(&0);
 
-                board.player_turn = if board.player_turn == 1 { 2 } else { 1 };
-                let next_player_turn = board.player_turn;
+                if coin_location <= 5 {
+                    board.player_turn = if board.player_turn == 1 { 2 } else { 1 };
+                    let next_player_turn = board.player_turn;
 
-                if coin_location != 0 || !board.moves.iter().any(|&(_, _, loc)| loc == 0) {
-                    board.moves.push((next_player_turn, coin.c, coin_location));
+                    let player_move = PlayerMove::new(next_player_turn, coin.c, coin_location);
+                    board.moves.push(player_move);
 
-                    let new_coin_location = if coin_location > 0 {
-                        coin_location - 1
-                    } else {
-                        coin_location
-                    };
+                    let new_coin_location = coin_location + 1;
+
                     board.column_state.insert(coin.c, new_coin_location);
-                }
 
-                let offset_x = -COIN_SIZE.x * (COLUMNS as f32) / 2.0;
-                let offset_y = -COIN_SIZE.y * (ROWS as f32) / 2.0;
+                    let offset_x = -COIN_SIZE.x * (COLUMNS as f32) / 2.0;
+                    let offset_y = -COIN_SIZE.y * (ROWS as f32) / 2.0;
 
-                if board.player_turn != 1 {
-                    commands
-                        .spawn(SpriteBundle {
-                            sprite: Sprite {
-                                custom_size: Some(COIN_SIZE),
+                    if board.player_turn != 1 {
+                        commands
+                            .spawn(SpriteBundle {
+                                sprite: Sprite {
+                                    custom_size: Some(COIN_SIZE),
+                                    ..Default::default()
+                                },
+                                texture: asset_server.load("red_circle.png"),
+                                transform: Transform::from_xyz(
+                                    offset_x + coin.c as f32 * (COIN_SIZE.x + SPACING),
+                                    offset_y + 6_f32 * (COIN_SIZE.y + SPACING),
+                                    1.0,
+                                ),
                                 ..Default::default()
-                            },
-                            texture: asset_server.load("red_circle.png"),
-                            transform: Transform::from_xyz(
-                                offset_x + coin.c as f32 * (COIN_SIZE.x + SPACING),
-                                offset_y + 6_f32 * (COIN_SIZE.y + SPACING),
-                                1.0,
-                            ),
-                            ..Default::default()
-                        })
-                        .insert(Coin::new(next_player_turn, coin.c, coin_location));
-                } else {
-                    commands
-                        .spawn(SpriteBundle {
-                            sprite: Sprite {
-                                custom_size: Some(COIN_SIZE),
+                            })
+                            .insert(CoinMove::new(player_move));
+                    } else {
+                        commands
+                            .spawn(SpriteBundle {
+                                sprite: Sprite {
+                                    custom_size: Some(COIN_SIZE),
+                                    ..Default::default()
+                                },
+                                texture: asset_server.load("yellow_circle.png"),
+                                transform: Transform::from_xyz(
+                                    offset_x + coin.c as f32 * (COIN_SIZE.x + SPACING),
+                                    offset_y + 6_f32 * (COIN_SIZE.y + SPACING),
+                                    1.0,
+                                ),
                                 ..Default::default()
-                            },
-                            texture: asset_server.load("yellow_circle.png"),
-                            transform: Transform::from_xyz(
-                                offset_x + coin.c as f32 * (COIN_SIZE.x + SPACING),
-                                offset_y + 6_f32 * (COIN_SIZE.y + SPACING),
-                                1.0,
-                            ),
-                            ..Default::default()
-                        })
-                        .insert(Coin::new(next_player_turn, coin.c, coin_location));
-                }
+                            })
+                            .insert(CoinMove::new(player_move));
+                    }
 
-                break;
+                    break;
+                }
             }
         } else if coin.r == 6 {
             *visibility = Visibility::Hidden;
@@ -219,27 +214,34 @@ fn place(
 }
 
 fn move_coin(
-    mut coin_query: Query<(&mut Coin, &mut Transform)>,
-    board: Res<Board>,
-    mut board_pos: Query<(&mut CoinPos, &mut Sprite, &Transform, &mut Visibility), Without<Coin>>,
+    mut coin_query: Query<(&CoinMove, &mut Transform)>,
+    board_pos: Query<(&CoinSlot, &Transform), Without<CoinMove>>,
 ) {
-    for (coin_comp, mut coin_transform) in coin_query.iter_mut() {
-        for (player, column, row) in board.moves.iter() {
-            // If the coin's location matches the move
-            if coin_comp.location == (*player, *column, *row) {
-                for (pos, _, column_transform, _) in board_pos.iter() {
-                    if pos.c == *column
-                        && column_transform
-                            .translation
-                            .distance(coin_transform.translation)
-                            > 10.0
-                    {
-                        info!("column transform: {}", column_transform.translation);
-                        info!("coin transform: {}", coin_transform.translation);
-                        coin_transform.translation += Vec3::new(0.0, -1.0, 0.0);
+    for (coin, mut coin_transform) in coin_query.iter_mut() {
+        for (coin_pos, board_transform) in board_pos.iter() {
+            if coin.player_move.column == coin_pos.c && coin.player_move.row == coin_pos.r {
+                let target = Vec3::new(
+                    board_transform.translation.x,
+                    board_transform.translation.y,
+                    1.,
+                );
+                let mut current = Vec3::new(
+                    coin_transform.translation.x,
+                    coin_transform.translation.y,
+                    1.,
+                );
+                let mut target_reached = false;
+                while !target_reached {
+                    if current.y > target.y {
+                        current.y -= 1.0;
+                    } else {
+                        target_reached = true;
                     }
+                    coin_transform.translation = current;
                 }
             }
         }
     }
 }
+
+// fn check_game(board: ResMut<Board>) {}

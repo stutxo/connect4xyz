@@ -1,10 +1,9 @@
 use bevy::prelude::*;
 use gui_plugin::Connect4GuiPlugin;
-use player::PlayerPlugin;
 
 mod components;
 mod gui_plugin;
-mod player;
+
 mod resources;
 
 fn main() {
@@ -22,7 +21,6 @@ fn main() {
                 })
                 .set(ImagePlugin::default_nearest()),
             Connect4GuiPlugin,
-            PlayerPlugin,
         ))
         .run();
 }
