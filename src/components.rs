@@ -26,4 +26,10 @@ impl CoinMove {
 }
 
 #[derive(Component)]
-pub struct TopRow();
+pub struct TopRow;
+
+#[derive(Component)]
+pub struct TextChanges;
+
+#[derive(Component)]
+pub struct DisplayTurn;

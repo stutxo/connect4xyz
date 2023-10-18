@@ -1,7 +1,7 @@
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
 
 use crate::{
-    components::{CoinMove, CoinSlot, TopRow},
+    components::{CoinMove, CoinSlot, DisplayTurn, TextChanges, TopRow},
     resources::{Board, PlayerMove},
 };
 
@@ -66,10 +66,42 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     })
                     .insert(Visibility::Hidden)
                     .insert(CoinSlot::new(column, row))
-                    .insert(TopRow());
+                    .insert(TopRow);
             }
         }
     }
+
+    let text = Text::from_sections([TextSection::new(
+        String::new(),
+        TextStyle {
+            color: Color::BLACK,
+            ..Default::default()
+        },
+    )]);
+
+    commands
+        .spawn(SpriteBundle {
+            sprite: Sprite {
+                custom_size: Some(Vec2::new(20.0, 20.0)),
+                ..default()
+            },
+            texture: asset_server.load("red_circle.png"),
+            transform: Transform::from_xyz(51.0, 167.0, 1.0),
+            ..default()
+        })
+        .insert(DisplayTurn)
+        .with_children(|parent| {
+            parent
+                .spawn(Text2dBundle {
+                    text: text.with_alignment(TextAlignment::Center),
+                    transform: Transform {
+                        translation: Vec3::new(-60., 0.0, 1.0),
+                        ..default()
+                    },
+                    ..Default::default()
+                })
+                .insert(TextChanges);
+        });
 }
 
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
@@ -81,8 +113,10 @@ fn place(
     camera_query: Query<(&Camera, &GlobalTransform)>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut update_sprite: Query<&mut Handle<Image>, With<TopRow>>,
+    mut update_sprite: Query<&mut Handle<Image>, (With<TopRow>, Without<DisplayTurn>)>,
     mut board: ResMut<Board>,
+    mut query: Query<&mut Text, With<TextChanges>>,
+    mut display_turn: Query<&mut Handle<Image>, With<DisplayTurn>>,
 ) {
     let (camera, camera_transform) = camera_query.single();
 
@@ -129,6 +163,21 @@ fn place(
         }
     }
 
+    if !board.in_progress {
+        for mut text in &mut query {
+            text.sections[0].value = format!("Player {}'s turn", board.player_turn);
+        }
+        if board.player_turn == 1 {
+            for mut handle in &mut display_turn.iter_mut() {
+                *handle = asset_server.load("red_circle.png");
+            }
+        } else {
+            for mut handle in &mut display_turn.iter_mut() {
+                *handle = asset_server.load("yellow_circle.png");
+            }
+        }
+    }
+
     for (coin, mut sprite, _, mut visibility) in board_pos.iter_mut() {
         if Some(coin.c) == hovered_column {
             if coin.r == 6 && !board.in_progress {
@@ -161,6 +210,7 @@ fn place(
 
                 if coin_location <= 5 {
                     board.player_turn = if board.player_turn == 1 { 2 } else { 1 };
+
                     let next_player_turn = board.player_turn;
 
                     let player_move = PlayerMove::new(next_player_turn, coin.c, coin_location);
@@ -239,7 +289,7 @@ fn move_coin(
 
                 if current.y > target.y {
                     board.in_progress = true;
-                    current.y -= 1.0 * 3.;
+                    current.y -= 1.0 * 10.;
                 } else {
                     current.y = target.y;
                     board.in_progress = false;
