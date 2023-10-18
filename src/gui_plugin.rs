@@ -9,6 +9,7 @@ const COIN_SIZE: Vec2 = Vec2::new(40.0, 40.0);
 const COLUMNS: usize = 7;
 const ROWS: usize = 7;
 const SPACING: f32 = 5.0;
+
 pub struct Connect4GuiPlugin;
 
 impl Plugin for Connect4GuiPlugin {
@@ -83,9 +84,6 @@ fn place(
     mut update_sprite: Query<&mut Handle<Image>, With<TopRow>>,
     mut board: ResMut<Board>,
 ) {
-    // if board.turn == 0 {
-    //     return;
-    // }
     let (camera, camera_transform) = camera_query.single();
 
     let get_position = |cursor_position: Vec2, window: &Window| {
@@ -133,8 +131,9 @@ fn place(
 
     for (coin, mut sprite, _, mut visibility) in board_pos.iter_mut() {
         if Some(coin.c) == hovered_column {
-            if coin.r == 6 {
+            if coin.r == 6 && !board.in_progress {
                 *visibility = Visibility::Visible;
+
                 if board.player_turn == 1 {
                     for mut handle in &mut update_sprite.iter_mut() {
                         *handle = asset_server.load("red_circle.png");
@@ -144,8 +143,14 @@ fn place(
                         *handle = asset_server.load("yellow_circle.png");
                     }
                 }
+            } else if coin.r == 6 {
+                *visibility = Visibility::Hidden;
             } else {
                 sprite.color = Color::rgb(0.9, 0.9, 0.9);
+            }
+
+            if board.in_progress {
+                continue;
             }
 
             if mouse.just_pressed(MouseButton::Left)
@@ -216,6 +221,7 @@ fn place(
 fn move_coin(
     mut coin_query: Query<(&CoinMove, &mut Transform)>,
     board_pos: Query<(&CoinSlot, &Transform), Without<CoinMove>>,
+    mut board: ResMut<Board>,
 ) {
     for (coin, mut coin_transform) in coin_query.iter_mut() {
         for (coin_pos, board_transform) in board_pos.iter() {
@@ -230,18 +236,19 @@ fn move_coin(
                     coin_transform.translation.y,
                     1.,
                 );
-                let mut target_reached = false;
-                while !target_reached {
-                    if current.y > target.y {
-                        current.y -= 1.0;
-                    } else {
-                        target_reached = true;
-                    }
-                    coin_transform.translation = current;
+
+                if current.y > target.y {
+                    board.in_progress = true;
+                    current.y -= 1.0 * 3.;
+                } else {
+                    current.y = target.y;
+                    board.in_progress = false;
                 }
+
+                coin_transform.translation = current;
             }
         }
     }
 }
 
-// fn check_game(board: ResMut<Board>) {}
+fn check_game(board: ResMut<Board>) {}

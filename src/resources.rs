@@ -8,6 +8,7 @@ pub struct Board {
     pub column_state: HashMap<usize, usize>,
     pub player_turn: usize,
     pub winner: Option<usize>,
+    pub in_progress: bool,
 }
 
 impl Board {
@@ -17,10 +18,10 @@ impl Board {
             column_state: HashMap::new(),
             player_turn: 1,
             winner: None,
+            in_progress: false,
         }
     }
 }
-
 #[derive(Clone, Copy)]
 pub struct PlayerMove {
     pub player: usize,
