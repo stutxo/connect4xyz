@@ -288,7 +288,7 @@ fn move_coin(
                 );
 
                 if current.y > target.y {
-                    current.y -= 1.0 * 150.0 * time.delta_seconds();
+                    current.y -= 1.0 * 250.0 * time.delta_seconds();
                     board.in_progress = true;
                 } else if !coin.reached_target {
                     check_win(&mut board);

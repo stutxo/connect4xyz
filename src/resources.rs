@@ -37,16 +37,26 @@ impl PlayerMove {
             row,
         }
     }
-    pub fn is_winner(&self, moves: &Vec<PlayerMove>) -> bool {
-        [(0, 1), (1, 0), (1, 1), (1, -1)].iter().any(|&(dc, dr)| {
-            self.check_direction(moves, dc, dr) + self.check_direction(moves, -dc, -dr) + 1 >= 4
-        })
+    pub fn is_winner(&self, moves: &[PlayerMove]) -> bool {
+        [(0, 1), (1, 0), (1, 1), (1, -1)]
+            .iter()
+            .any(|&(column_direction, row_direction)| {
+                self.check_direction(moves, column_direction, row_direction)
+                    + self.check_direction(moves, -column_direction, -row_direction)
+                    + 1
+                    >= 4
+            })
     }
 
-    pub fn check_direction(&self, moves: &Vec<PlayerMove>, dc: isize, dr: isize) -> usize {
+    pub fn check_direction(
+        &self,
+        moves: &[PlayerMove],
+        column_direction: isize,
+        row_direction: isize,
+    ) -> usize {
         let mut count = 0;
-        let mut current_column = self.column as isize + dc;
-        let mut current_row = self.row as isize + dr;
+        let mut current_column = self.column as isize + column_direction;
+        let mut current_row = self.row as isize + row_direction;
 
         while current_column >= 0
             && current_row >= 0
@@ -59,8 +69,8 @@ impl PlayerMove {
             })
         {
             count += 1;
-            current_column += dc;
-            current_row += dr;
+            current_column += column_direction;
+            current_row += row_direction;
         }
 
         count
