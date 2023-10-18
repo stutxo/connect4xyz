@@ -18,7 +18,7 @@ impl Plugin for Connect4GuiPlugin {
             .add_systems(Startup, setup)
             .add_systems(
                 Update,
-                (place, move_coin.after(place), update_test.after(move_coin)),
+                (place, move_coin.after(place), update_text.after(move_coin)),
             );
     }
 }
@@ -119,6 +119,7 @@ fn place(
     asset_server: Res<AssetServer>,
     mut update_sprite: Query<&mut Handle<Image>, (With<TopRow>, Without<DisplayTurn>)>,
     mut board: ResMut<Board>,
+    coin_query: Query<Entity, With<CoinMove>>,
 ) {
     let (camera, camera_transform) = camera_query.single();
 
@@ -163,6 +164,19 @@ fn place(
                 }
             }
         }
+    }
+
+    if board.winner.is_some() {
+        if mouse.just_pressed(MouseButton::Left)
+            || mouse.just_pressed(MouseButton::Right)
+            || touches.iter_just_pressed().any(|_| true)
+        {
+            *board = Board::new();
+            for entity in coin_query.iter() {
+                commands.entity(entity).despawn();
+            }
+        }
+        return;
     }
 
     for (coin, mut sprite, _, mut visibility) in board_pos.iter_mut() {
@@ -277,9 +291,10 @@ fn move_coin(
                     current.y -= 1.0 * 150.0 * time.delta_seconds();
                     board.in_progress = true;
                 } else if !coin.reached_target {
+                    check_win(&mut board);
+
                     current.y = target.y;
                     board.in_progress = false;
-
                     board.player_turn = if board.player_turn == 1 { 2 } else { 1 };
                     coin.reached_target = true;
                 }
@@ -290,7 +305,13 @@ fn move_coin(
     }
 }
 
-fn update_test(
+fn check_win(board: &mut ResMut<Board>) {
+    if has_winning_move(&board.moves) {
+        board.winner = board.player_turn.into();
+    }
+}
+
+fn update_text(
     mut display_turn: Query<&mut Handle<Image>, With<DisplayTurn>>,
     asset_server: Res<AssetServer>,
     mut text: Query<&mut Text, With<TextChanges>>,
@@ -308,4 +329,25 @@ fn update_test(
             *handle = asset_server.load("yellow_circle.png");
         }
     }
+    if board.winner.is_some() {
+        for mut text in &mut text {
+            text.sections[0].value = format!(
+                "Player {} wins!\n\nclick to play again",
+                board.winner.unwrap()
+            );
+        }
+        if board.winner == Some(1) {
+            for mut handle in &mut display_turn.iter_mut() {
+                *handle = asset_server.load("red_circle.png");
+            }
+        } else {
+            for mut handle in &mut display_turn.iter_mut() {
+                *handle = asset_server.load("yellow_circle.png");
+            }
+        }
+    }
+}
+
+fn has_winning_move(moves: &Vec<PlayerMove>) -> bool {
+    moves.iter().any(|move_| move_.is_winner(moves))
 }
