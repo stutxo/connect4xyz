@@ -1,7 +1,7 @@
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
 
 use crate::{
-    components::{CoinMove, CoinSlot, DisplayTurn, TextChanges, TopRow},
+    components::{CoinMove, CoinSlot, DisplayTurn, ReplayButton, TextChanges, TopRow},
     resources::{Board, PlayerMove},
 };
 
@@ -90,7 +90,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ..default()
             },
             texture: asset_server.load("red_circle.png"),
-            transform: Transform::from_xyz(51.0, 167.0, 1.0),
+            transform: Transform::from_xyz(70.0, 167.0, 1.0),
             ..default()
         })
         .insert(DisplayTurn)
@@ -106,6 +106,19 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 })
                 .insert(TextChanges);
         });
+
+    commands
+        .spawn(SpriteBundle {
+            sprite: Sprite {
+                custom_size: Some(Vec2::new(20.0, 20.0)),
+                ..default()
+            },
+            texture: asset_server.load("repeat.png"),
+            transform: Transform::from_xyz(0.0, 145., 1.0),
+            ..default()
+        })
+        .insert(Visibility::Hidden)
+        .insert(ReplayButton);
 }
 
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
@@ -120,6 +133,7 @@ fn place(
     mut update_sprite: Query<&mut Handle<Image>, (With<TopRow>, Without<DisplayTurn>)>,
     mut board: ResMut<Board>,
     coin_query: Query<Entity, With<CoinMove>>,
+    mut replay_button: Query<(&mut ReplayButton, &Transform, &mut Visibility), Without<CoinSlot>>,
 ) {
     let (camera, camera_transform) = camera_query.single();
 
@@ -167,13 +181,39 @@ fn place(
     }
 
     if board.winner.is_some() {
-        if mouse.just_pressed(MouseButton::Left)
-            || mouse.just_pressed(MouseButton::Right)
-            || touches.iter_just_pressed().any(|_| true)
-        {
-            *board = Board::new();
-            for entity in coin_query.iter() {
-                commands.entity(entity).despawn();
+        for (_, transform, mut visibility) in replay_button.iter_mut() {
+            *visibility = Visibility::Visible;
+            if mouse.just_pressed(MouseButton::Left)
+                || mouse.just_pressed(MouseButton::Right)
+                || touches.iter_just_pressed().any(|_| true)
+            {
+                if let Some(window) = windows.iter().next() {
+                    if let Some(cursor) = window.cursor_position() {
+                        let position = get_position(cursor, window);
+
+                        if position.distance(transform.translation.truncate()) < 20.0 {
+                            *board = Board::new();
+                            for entity in coin_query.iter() {
+                                commands.entity(entity).despawn();
+                            }
+                            *visibility = Visibility::Hidden;
+                            break;
+                        }
+                    }
+                }
+                for touch in touches.iter() {
+                    if let Some(window) = windows.iter().next() {
+                        let position = get_position(touch.position(), window);
+                        if position.distance(transform.translation.truncate()) < 20.0 {
+                            *board = Board::new();
+                            for entity in coin_query.iter() {
+                                commands.entity(entity).despawn();
+                            }
+                            *visibility = Visibility::Hidden;
+                            break;
+                        }
+                    }
+                }
             }
         }
         return;
@@ -331,10 +371,7 @@ fn update_text(
     }
     if board.winner.is_some() {
         for mut text in &mut text {
-            text.sections[0].value = format!(
-                "Player {} wins!\n\nclick to play again",
-                board.winner.unwrap()
-            );
+            text.sections[0].value = format!("Player {} wins!", board.winner.unwrap());
         }
         if board.winner == Some(1) {
             for mut handle in &mut display_turn.iter_mut() {
@@ -348,6 +385,6 @@ fn update_text(
     }
 }
 
-fn has_winning_move(moves: &Vec<PlayerMove>) -> bool {
+fn has_winning_move(moves: &[PlayerMove]) -> bool {
     moves.iter().any(|move_| move_.is_winner(moves))
 }
