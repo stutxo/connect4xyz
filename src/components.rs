@@ -17,11 +17,15 @@ impl CoinSlot {
 #[derive(Component)]
 pub struct CoinMove {
     pub player_move: PlayerMove,
+    pub reached_target: bool,
 }
 
 impl CoinMove {
     pub fn new(player_move: PlayerMove) -> Self {
-        Self { player_move }
+        Self {
+            player_move,
+            reached_target: false,
+        }
     }
 }
 

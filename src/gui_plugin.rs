@@ -16,7 +16,10 @@ impl Plugin for Connect4GuiPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Board::new())
             .add_systems(Startup, setup)
-            .add_systems(Update, (place, move_coin.after(place)));
+            .add_systems(
+                Update,
+                (place, move_coin.after(place), update_test.after(move_coin)),
+            );
     }
 }
 
@@ -116,8 +119,6 @@ fn place(
     asset_server: Res<AssetServer>,
     mut update_sprite: Query<&mut Handle<Image>, (With<TopRow>, Without<DisplayTurn>)>,
     mut board: ResMut<Board>,
-    mut query: Query<&mut Text, With<TextChanges>>,
-    mut display_turn: Query<&mut Handle<Image>, With<DisplayTurn>>,
 ) {
     let (camera, camera_transform) = camera_query.single();
 
@@ -195,8 +196,6 @@ fn place(
                 let coin_location = *board.column_state.get(&coin.c).unwrap_or(&0);
 
                 if coin_location <= 5 {
-                    board.player_turn = if board.player_turn == 1 { 2 } else { 1 };
-
                     let next_player_turn = board.player_turn;
 
                     let player_move = PlayerMove::new(next_player_turn, coin.c, coin_location);
@@ -209,7 +208,7 @@ fn place(
                     let offset_x = -COIN_SIZE.x * (COLUMNS as f32) / 2.0;
                     let offset_y = -COIN_SIZE.y * (ROWS as f32) / 2.0;
 
-                    if board.player_turn != 1 {
+                    if board.player_turn == 1 {
                         commands
                             .spawn(SpriteBundle {
                                 sprite: Sprite {
@@ -252,30 +251,15 @@ fn place(
             sprite.color = Color::WHITE;
         }
     }
-
-    if !board.in_progress {
-        for mut text in &mut query {
-            text.sections[0].value = format!("Player {}'s turn", board.player_turn);
-        }
-        if board.player_turn == 1 {
-            for mut handle in &mut display_turn.iter_mut() {
-                *handle = asset_server.load("red_circle.png");
-            }
-        } else {
-            for mut handle in &mut display_turn.iter_mut() {
-                *handle = asset_server.load("yellow_circle.png");
-            }
-        }
-    }
 }
 
 fn move_coin(
-    mut coin_query: Query<(&CoinMove, &mut Transform)>,
+    mut coin_query: Query<(&mut CoinMove, &mut Transform)>,
     board_pos: Query<(&CoinSlot, &Transform), Without<CoinMove>>,
     mut board: ResMut<Board>,
     time: Res<Time>,
 ) {
-    for (coin, mut coin_transform) in coin_query.iter_mut() {
+    for (mut coin, mut coin_transform) in coin_query.iter_mut() {
         for (coin_pos, board_transform) in board_pos.iter() {
             if coin.player_move.column == coin_pos.c && coin.player_move.row == coin_pos.r {
                 let target = Vec3::new(
@@ -292,9 +276,12 @@ fn move_coin(
                 if current.y > target.y {
                     current.y -= 1.0 * 150.0 * time.delta_seconds();
                     board.in_progress = true;
-                } else {
+                } else if !coin.reached_target {
                     current.y = target.y;
                     board.in_progress = false;
+
+                    board.player_turn = if board.player_turn == 1 { 2 } else { 1 };
+                    coin.reached_target = true;
                 }
 
                 coin_transform.translation = current;
@@ -303,4 +290,22 @@ fn move_coin(
     }
 }
 
-fn check_game(board: ResMut<Board>) {}
+fn update_test(
+    mut display_turn: Query<&mut Handle<Image>, With<DisplayTurn>>,
+    asset_server: Res<AssetServer>,
+    mut text: Query<&mut Text, With<TextChanges>>,
+    board: Res<Board>,
+) {
+    for mut text in &mut text {
+        text.sections[0].value = format!("Player {}'s turn", board.player_turn);
+    }
+    if board.player_turn == 1 {
+        for mut handle in &mut display_turn.iter_mut() {
+            *handle = asset_server.load("red_circle.png");
+        }
+    } else {
+        for mut handle in &mut display_turn.iter_mut() {
+            *handle = asset_server.load("yellow_circle.png");
+        }
+    }
+}
