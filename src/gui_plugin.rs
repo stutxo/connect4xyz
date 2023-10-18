@@ -16,7 +16,7 @@ impl Plugin for Connect4GuiPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Board::new())
             .add_systems(Startup, setup)
-            .add_systems(Update, (place, move_coin));
+            .add_systems(Update, (place, move_coin.after(place)));
     }
 }
 
@@ -75,7 +75,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         String::new(),
         TextStyle {
             color: Color::BLACK,
-            font_size: 20.0,
+            font_size: 18.0,
             ..Default::default()
         },
     )]);
@@ -96,7 +96,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .spawn(Text2dBundle {
                     text: text.with_alignment(TextAlignment::Center),
                     transform: Transform {
-                        translation: Vec3::new(-60., 0.0, 1.0),
+                        translation: Vec3::new(-85., 0.0, 1.0),
                         ..default()
                     },
                     ..Default::default()
@@ -160,21 +160,6 @@ fn place(
                     hovered_column = Some(coin.c);
                     break;
                 }
-            }
-        }
-    }
-
-    if !board.in_progress {
-        for mut text in &mut query {
-            text.sections[0].value = format!("Player {}'s turn", board.player_turn);
-        }
-        if board.player_turn == 1 {
-            for mut handle in &mut display_turn.iter_mut() {
-                *handle = asset_server.load("red_circle.png");
-            }
-        } else {
-            for mut handle in &mut display_turn.iter_mut() {
-                *handle = asset_server.load("yellow_circle.png");
             }
         }
     }
@@ -267,12 +252,28 @@ fn place(
             sprite.color = Color::WHITE;
         }
     }
+
+    if !board.in_progress {
+        for mut text in &mut query {
+            text.sections[0].value = format!("Player {}'s turn", board.player_turn);
+        }
+        if board.player_turn == 1 {
+            for mut handle in &mut display_turn.iter_mut() {
+                *handle = asset_server.load("red_circle.png");
+            }
+        } else {
+            for mut handle in &mut display_turn.iter_mut() {
+                *handle = asset_server.load("yellow_circle.png");
+            }
+        }
+    }
 }
 
 fn move_coin(
     mut coin_query: Query<(&CoinMove, &mut Transform)>,
     board_pos: Query<(&CoinSlot, &Transform), Without<CoinMove>>,
     mut board: ResMut<Board>,
+    time: Res<Time>,
 ) {
     for (coin, mut coin_transform) in coin_query.iter_mut() {
         for (coin_pos, board_transform) in board_pos.iter() {
@@ -289,8 +290,8 @@ fn move_coin(
                 );
 
                 if current.y > target.y {
+                    current.y -= 1.0 * 150.0 * time.delta_seconds();
                     board.in_progress = true;
-                    current.y -= 1.0 * 5.;
                 } else {
                     current.y = target.y;
                     board.in_progress = false;

@@ -6,6 +6,8 @@ mod gui_plugin;
 
 mod resources;
 
+pub const TICK_RATE: f32 = 1. / 30.;
+
 fn main() {
     App::new()
         .add_plugins((
