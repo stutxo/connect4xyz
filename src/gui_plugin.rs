@@ -114,7 +114,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ..default()
             },
             texture: asset_server.load("repeat.png"),
-            transform: Transform::from_xyz(0.0, 145., 1.0),
+            transform: Transform::from_xyz(95.0, 167., 1.0),
             ..default()
         })
         .insert(Visibility::Hidden)
@@ -216,11 +216,10 @@ fn place(
                 }
             }
         }
-        return;
     }
 
     for (coin, mut sprite, _, mut visibility) in board_pos.iter_mut() {
-        if Some(coin.c) == hovered_column {
+        if Some(coin.c) == hovered_column && board.winner.is_none() {
             if coin.r == 6 && !board.in_progress {
                 *visibility = Visibility::Visible;
 
@@ -251,6 +250,10 @@ fn place(
 
                 if coin_location <= 5 {
                     let next_player_turn = board.player_turn;
+
+                    //for nostr message, we need to read the send/ process collumn and thats it. we can determin the turn by the board state
+                    // and by the number of nostr messages. For coin location we can use the board state.
+                    //might be able to get rid of this column state and just use the board state
 
                     let player_move = PlayerMove::new(next_player_turn, coin.c, coin_location);
                     board.moves.push(player_move);

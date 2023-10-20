@@ -1,12 +1,11 @@
 use bevy::prelude::*;
 use gui_plugin::Connect4GuiPlugin;
+use nostr_plugin::NostrPlugin;
 
 mod components;
 mod gui_plugin;
-
+mod nostr_plugin;
 mod resources;
-
-pub const TICK_RATE: f32 = 1. / 30.;
 
 fn main() {
     App::new()
@@ -23,6 +22,7 @@ fn main() {
                 })
                 .set(ImagePlugin::default_nearest()),
             Connect4GuiPlugin,
+            //NostrPlugin,
         ))
         .run();
 }
