@@ -392,7 +392,11 @@ fn update_text(
     board: Res<Board>,
     send_net_msg: Res<SendNetMsg>,
 ) {
-    if board.player_turn == send_net_msg.local_player {
+    if send_net_msg.local_player == 0 {
+        for mut text in &mut text {
+            text.sections[0].value = "some different text".to_string(); // Replace with the desired text for this condition
+        }
+    } else if board.player_turn == send_net_msg.local_player {
         for mut text in &mut text {
             text.sections[0].value = "your turn".to_string();
         }
@@ -401,6 +405,7 @@ fn update_text(
             text.sections[0].value = "waiting..".to_string();
         }
     }
+
     if board.player_turn == 1 {
         for mut handle in &mut display_turn.iter_mut() {
             *handle = asset_server.load("red_circle.png");

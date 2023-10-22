@@ -157,6 +157,10 @@ fn handle_net_msg(
             match serde_json::from_str::<NetworkMessage>(&message) {
                 Ok(network_message) => match network_message {
                     NetworkMessage::Lfg => {
+                        if send_net_msg.start {
+                            return;
+                        }
+
                         send_net_msg.local_player = 1;
                         info!("received lfg");
                         let start_game_msg = NetworkMessage::StartGame;
@@ -174,11 +178,10 @@ fn handle_net_msg(
                         send_net_msg.start = true;
                     }
                     NetworkMessage::StartGame => {
-                        info!("received start game");
-
                         if send_net_msg.start {
                             return;
                         }
+                        info!("received start game");
                         send_net_msg.local_player = 2;
                         let start_game_msg = NetworkMessage::StartGame;
                         let serialized_message = serde_json::to_string(&start_game_msg).unwrap();
