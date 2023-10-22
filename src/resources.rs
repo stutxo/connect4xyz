@@ -1,14 +1,12 @@
 use bevy::prelude::Resource;
 use futures::channel::mpsc::{Receiver, Sender};
-use nostr_sdk::{Event, Keys};
-use std::collections::HashMap;
+use nostr_sdk::Keys;
 
 use serde::{Deserialize, Serialize};
 
 #[derive(Resource)]
 pub struct Board {
     pub moves: Vec<PlayerMove>,
-    pub column_state: HashMap<usize, usize>,
     pub player_turn: usize,
     pub winner: Option<usize>,
     pub in_progress: bool,
@@ -18,7 +16,6 @@ impl Board {
     pub fn new() -> Self {
         Self {
             moves: Vec::new(),
-            column_state: HashMap::new(),
             player_turn: 1,
             winner: None,
             in_progress: false,
@@ -108,6 +105,7 @@ impl NetworkStuff {
 pub struct SendNetMsg {
     pub send: Option<Sender<String>>,
     pub start: bool,
+    pub local_player: usize,
 }
 
 impl SendNetMsg {
@@ -115,6 +113,7 @@ impl SendNetMsg {
         Self {
             send: None,
             start: false,
+            local_player: 0,
         }
     }
 }

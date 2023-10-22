@@ -1,10 +1,11 @@
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
+
 use nostr_sdk::serde_json;
 
 use crate::{
     components::{CoinMove, CoinSlot, DisplayTurn, ReplayButton, TextChanges, TopRow},
     messages::NetworkMessage,
-    resources::{Board, NetworkStuff, PlayerMove, SendNetMsg},
+    resources::{Board, PlayerMove, SendNetMsg},
 };
 
 const COIN_SIZE: Vec2 = Vec2::new(40.0, 40.0);
@@ -92,7 +93,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ..default()
             },
             texture: asset_server.load("red_circle.png"),
-            transform: Transform::from_xyz(70.0, 167.0, 1.0),
+            transform: Transform::from_xyz(50.0, 167.0, 1.0),
             ..default()
         })
         .insert(DisplayTurn)
@@ -101,7 +102,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .spawn(Text2dBundle {
                     text: text.with_alignment(TextAlignment::Center),
                     transform: Transform {
-                        translation: Vec3::new(-85., 0.0, 1.0),
+                        translation: Vec3::new(-55., 0.0, 1.0),
                         ..default()
                     },
                     ..Default::default()
@@ -127,7 +128,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 fn place(
     touches: Res<Touches>,
     mouse: Res<Input<MouseButton>>,
-    mut board_pos: Query<(&mut CoinSlot, &mut Sprite, &Transform, &mut Visibility)>,
+    mut board_pos: Query<(&CoinSlot, &mut Sprite, &Transform, &mut Visibility)>,
     windows: Query<&Window>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
     mut commands: Commands,
@@ -136,7 +137,7 @@ fn place(
     mut board: ResMut<Board>,
     coin_query: Query<Entity, With<CoinMove>>,
     mut replay_button: Query<(&mut ReplayButton, &Transform, &mut Visibility), Without<CoinSlot>>,
-    mut network_stuff: ResMut<NetworkStuff>,
+
     mut send_net_msg: ResMut<SendNetMsg>,
 ) {
     let (camera, camera_transform) = camera_query.single();
@@ -201,6 +202,18 @@ fn place(
                                 commands.entity(entity).despawn();
                             }
                             *visibility = Visibility::Hidden;
+                            let replay_msg = NetworkMessage::Replay;
+                            let serialized_message = serde_json::to_string(&replay_msg).unwrap();
+
+                            match send_net_msg
+                                .send
+                                .as_mut()
+                                .unwrap()
+                                .try_send(serialized_message)
+                            {
+                                Ok(()) => {}
+                                Err(e) => error!("Error sending message: {} CHANNEL FULL???", e),
+                            };
                             break;
                         }
                     }
@@ -214,6 +227,18 @@ fn place(
                                 commands.entity(entity).despawn();
                             }
                             *visibility = Visibility::Hidden;
+                            let replay_msg = NetworkMessage::Replay;
+                            let serialized_message = serde_json::to_string(&replay_msg).unwrap();
+
+                            match send_net_msg
+                                .send
+                                .as_mut()
+                                .unwrap()
+                                .try_send(serialized_message)
+                            {
+                                Ok(()) => {}
+                                Err(e) => error!("Error sending message: {} CHANNEL FULL???", e),
+                            };
                             break;
                         }
                     }
@@ -227,7 +252,7 @@ fn place(
             if coin.r == 6 && !board.in_progress {
                 *visibility = Visibility::Visible;
 
-                if board.player_turn == 1 {
+                if send_net_msg.local_player == 1 {
                     for mut handle in &mut update_sprite.iter_mut() {
                         *handle = asset_server.load("red_circle.png");
                     }
@@ -245,28 +270,17 @@ fn place(
             if board.in_progress {
                 continue;
             }
-
-            if mouse.just_pressed(MouseButton::Left)
-                || mouse.just_pressed(MouseButton::Right)
-                || touches.iter_just_pressed().any(|_| true)
+            if board.player_turn == send_net_msg.local_player
+                && (mouse.just_pressed(MouseButton::Left)
+                    || mouse.just_pressed(MouseButton::Right)
+                    || touches.iter_just_pressed().any(|_| true))
             {
-                let coin_location = *board.column_state.get(&coin.c).unwrap_or(&0);
-
-                if coin_location <= 5 {
-                    let next_player_turn = board.player_turn;
-
-                    //for nostr message, we need to read the send/ process collumn and thats it. we can determin the turn by the board state
-                    // and by the number of nostr messages. For coin location we can use the board state.
-                    //might be able to get rid of this column state and just use the board state
-
-                    let player_move = PlayerMove::new(next_player_turn, coin.c, coin_location);
+                let row_pos = board.moves.iter().filter(|m| m.column == coin.c).count();
+                if row_pos <= 5 {
+                    let player_move = PlayerMove::new(board.player_turn, coin.c, row_pos);
                     board.moves.push(player_move);
 
-                    let new_coin_location = coin_location + 1;
-
-                    board.column_state.insert(coin.c, new_coin_location);
-
-                    let input_msg = NetworkMessage::Input(player_move);
+                    let input_msg = NetworkMessage::Input(coin.c);
                     let serialized_message = serde_json::to_string(&input_msg).unwrap();
 
                     match send_net_msg
@@ -376,9 +390,16 @@ fn update_text(
     asset_server: Res<AssetServer>,
     mut text: Query<&mut Text, With<TextChanges>>,
     board: Res<Board>,
+    send_net_msg: Res<SendNetMsg>,
 ) {
-    for mut text in &mut text {
-        text.sections[0].value = format!("Player {}'s turn", board.player_turn);
+    if board.player_turn == send_net_msg.local_player {
+        for mut text in &mut text {
+            text.sections[0].value = "your turn".to_string();
+        }
+    } else {
+        for mut text in &mut text {
+            text.sections[0].value = "waiting..".to_string();
+        }
     }
     if board.player_turn == 1 {
         for mut handle in &mut display_turn.iter_mut() {
@@ -390,10 +411,16 @@ fn update_text(
         }
     }
     if board.winner.is_some() {
-        for mut text in &mut text {
-            text.sections[0].value = format!("Player {} wins!", board.winner.unwrap());
+        if board.winner == Some(send_net_msg.local_player) {
+            for mut text in &mut text {
+                text.sections[0].value = "you win!!".to_string();
+            }
+        } else {
+            for mut text in &mut text {
+                text.sections[0].value = "lol loser".to_string();
+            }
         }
-        if board.winner == Some(1) {
+        if send_net_msg.local_player == 1 {
             for mut handle in &mut display_turn.iter_mut() {
                 *handle = asset_server.load("red_circle.png");
             }
