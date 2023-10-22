@@ -4,6 +4,7 @@ use nostr_plugin::NostrPlugin;
 
 mod components;
 mod gui_plugin;
+mod messages;
 mod nostr_plugin;
 mod resources;
 
@@ -22,7 +23,7 @@ fn main() {
                 })
                 .set(ImagePlugin::default_nearest()),
             Connect4GuiPlugin,
-            //NostrPlugin,
+            NostrPlugin,
         ))
         .run();
 }

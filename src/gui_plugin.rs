@@ -1,8 +1,10 @@
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
+use nostr_sdk::serde_json;
 
 use crate::{
     components::{CoinMove, CoinSlot, DisplayTurn, ReplayButton, TextChanges, TopRow},
-    resources::{Board, PlayerMove},
+    messages::NetworkMessage,
+    resources::{Board, NetworkStuff, PlayerMove, SendNetMsg},
 };
 
 const COIN_SIZE: Vec2 = Vec2::new(40.0, 40.0);
@@ -134,6 +136,8 @@ fn place(
     mut board: ResMut<Board>,
     coin_query: Query<Entity, With<CoinMove>>,
     mut replay_button: Query<(&mut ReplayButton, &Transform, &mut Visibility), Without<CoinSlot>>,
+    mut network_stuff: ResMut<NetworkStuff>,
+    mut send_net_msg: ResMut<SendNetMsg>,
 ) {
     let (camera, camera_transform) = camera_query.single();
 
@@ -261,6 +265,19 @@ fn place(
                     let new_coin_location = coin_location + 1;
 
                     board.column_state.insert(coin.c, new_coin_location);
+
+                    let input_msg = NetworkMessage::Input(player_move);
+                    let serialized_message = serde_json::to_string(&input_msg).unwrap();
+
+                    match send_net_msg
+                        .send
+                        .as_mut()
+                        .unwrap()
+                        .try_send(serialized_message)
+                    {
+                        Ok(()) => {}
+                        Err(e) => error!("Error sending message: {} CHANNEL FULL???", e),
+                    };
 
                     let offset_x = -COIN_SIZE.x * (COLUMNS as f32) / 2.0;
                     let offset_y = -COIN_SIZE.y * (ROWS as f32) / 2.0;

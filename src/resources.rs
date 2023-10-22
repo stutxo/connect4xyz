@@ -1,6 +1,9 @@
+use bevy::prelude::Resource;
+use futures::channel::mpsc::{Receiver, Sender};
+use nostr_sdk::{Event, Keys};
 use std::collections::HashMap;
 
-use bevy::prelude::Resource;
+use serde::{Deserialize, Serialize};
 
 #[derive(Resource)]
 pub struct Board {
@@ -22,7 +25,7 @@ impl Board {
         }
     }
 }
-#[derive(Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub struct PlayerMove {
     pub player: usize,
     pub column: usize,
@@ -74,5 +77,44 @@ impl PlayerMove {
         }
 
         count
+    }
+}
+
+#[derive(Resource)]
+pub struct NostrStuff {
+    pub local_keys: Keys,
+}
+
+impl NostrStuff {
+    pub fn new() -> Self {
+        Self {
+            local_keys: Keys::generate(),
+        }
+    }
+}
+
+#[derive(Resource)]
+pub struct NetworkStuff {
+    pub read: Option<Receiver<String>>,
+}
+
+impl NetworkStuff {
+    pub fn new() -> Self {
+        Self { read: None }
+    }
+}
+
+#[derive(Resource)]
+pub struct SendNetMsg {
+    pub send: Option<Sender<String>>,
+    pub start: bool,
+}
+
+impl SendNetMsg {
+    pub fn new() -> Self {
+        Self {
+            send: None,
+            start: false,
+        }
     }
 }

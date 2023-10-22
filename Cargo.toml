@@ -4,7 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-
+nostr-sdk = "0.24"
+wasm-bindgen-futures = "0.4.37"
+futures = "0.3.28"
+serde = { version = "1.0.189", features = ["derive"] }
 
 [profile.release]
 opt-level = "z"
