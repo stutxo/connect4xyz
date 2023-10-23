@@ -400,7 +400,7 @@ fn update_text(
         }
     } else if send_net_msg.local_player == 3 {
         for mut text in &mut text {
-            text.sections[0].value = "spectating".to_string();
+            text.sections[0].value = "spectating(doesnt work yet)".to_string();
         }
     } else if board.player_turn == send_net_msg.local_player {
         for mut text in &mut text {
@@ -408,7 +408,7 @@ fn update_text(
         }
     } else {
         for mut text in &mut text {
-            text.sections[0].value = "other players turn...".to_string();
+            text.sections[0].value = "enemy turn...".to_string();
         }
     }
 
