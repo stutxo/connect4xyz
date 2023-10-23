@@ -408,7 +408,7 @@ fn update_text(
         }
     } else {
         for mut text in &mut text {
-            text.sections[0].value = "waiting for player...".to_string();
+            text.sections[0].value = "other players turn...".to_string();
         }
     }
 
