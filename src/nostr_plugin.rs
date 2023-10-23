@@ -157,25 +157,37 @@ fn handle_net_msg(
             match serde_json::from_str::<NetworkMessage>(&message) {
                 Ok(network_message) => match network_message {
                     NetworkMessage::Lfg => {
-                        if send_net_msg.start {
-                            return;
+                        if !send_net_msg.start {
+                            send_net_msg.local_player = 1;
+                            info!("received lfg");
+                            let start_game_msg = NetworkMessage::StartGame;
+                            let serialized_message =
+                                serde_json::to_string(&start_game_msg).unwrap();
+
+                            match send_net_msg
+                                .send
+                                .as_mut()
+                                .unwrap()
+                                .try_send(serialized_message)
+                            {
+                                Ok(()) => {}
+                                Err(e) => error!("Error sending message: {} CHANNEL FULL???", e),
+                            };
+                            send_net_msg.start = true;
+                        } else {
+                            let spectate_msg = NetworkMessage::Spectate(board.moves.clone());
+                            let serialized_message = serde_json::to_string(&spectate_msg).unwrap();
+
+                            match send_net_msg
+                                .send
+                                .as_mut()
+                                .unwrap()
+                                .try_send(serialized_message)
+                            {
+                                Ok(()) => {}
+                                Err(e) => error!("Error sending message: {} CHANNEL FULL???", e),
+                            };
                         }
-
-                        send_net_msg.local_player = 1;
-                        info!("received lfg");
-                        let start_game_msg = NetworkMessage::StartGame;
-                        let serialized_message = serde_json::to_string(&start_game_msg).unwrap();
-
-                        match send_net_msg
-                            .send
-                            .as_mut()
-                            .unwrap()
-                            .try_send(serialized_message)
-                        {
-                            Ok(()) => {}
-                            Err(e) => error!("Error sending message: {} CHANNEL FULL???", e),
-                        };
-                        send_net_msg.start = true;
                     }
                     NetworkMessage::StartGame => {
                         if send_net_msg.start {
@@ -205,6 +217,13 @@ fn handle_net_msg(
                         for (_, mut visibility) in replay_button.iter_mut() {
                             *visibility = Visibility::Hidden;
                         }
+                    }
+                    NetworkMessage::Spectate(board_moves) => {
+                        if send_net_msg.start {
+                            return;
+                        }
+                        send_net_msg.local_player = 3;
+                        board.moves = board_moves;
                     }
                     NetworkMessage::Input(new_input) => {
                         info!("received input {:?}", new_input);

@@ -93,7 +93,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ..default()
             },
             texture: asset_server.load("red_circle.png"),
-            transform: Transform::from_xyz(50.0, 167.0, 1.0),
+            transform: Transform::from_xyz(0.0, 180.0, 1.0),
             ..default()
         })
         .insert(DisplayTurn)
@@ -102,7 +102,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .spawn(Text2dBundle {
                     text: text.with_alignment(TextAlignment::Center),
                     transform: Transform {
-                        translation: Vec3::new(-55., 0.0, 1.0),
+                        translation: Vec3::new(0., -20.0, 1.0),
                         ..default()
                     },
                     ..Default::default()
@@ -117,7 +117,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ..default()
             },
             texture: asset_server.load("repeat.png"),
-            transform: Transform::from_xyz(95.0, 167., 1.0),
+            transform: Transform::from_xyz(30.0, 180., 1.0),
             ..default()
         })
         .insert(Visibility::Hidden)
@@ -185,7 +185,7 @@ fn place(
         }
     }
 
-    if board.winner.is_some() {
+    if board.winner.is_some() && send_net_msg.start {
         for (_, transform, mut visibility) in replay_button.iter_mut() {
             *visibility = Visibility::Visible;
             if mouse.just_pressed(MouseButton::Left)
@@ -393,8 +393,14 @@ fn update_text(
     send_net_msg: Res<SendNetMsg>,
 ) {
     if send_net_msg.local_player == 0 {
+        if !send_net_msg.start {
+            for mut text in &mut text {
+                text.sections[0].value = "waiting for player to join...".to_string();
+            }
+        }
+    } else if send_net_msg.local_player == 3 {
         for mut text in &mut text {
-            text.sections[0].value = "some different text".to_string(); // Replace with the desired text for this condition
+            text.sections[0].value = "spectating".to_string();
         }
     } else if board.player_turn == send_net_msg.local_player {
         for mut text in &mut text {
@@ -402,36 +408,58 @@ fn update_text(
         }
     } else {
         for mut text in &mut text {
-            text.sections[0].value = "waiting..".to_string();
+            text.sections[0].value = "waiting for player...".to_string();
         }
     }
 
-    if board.player_turn == 1 {
-        for mut handle in &mut display_turn.iter_mut() {
-            *handle = asset_server.load("red_circle.png");
-        }
-    } else {
-        for mut handle in &mut display_turn.iter_mut() {
-            *handle = asset_server.load("yellow_circle.png");
-        }
-    }
-    if board.winner.is_some() {
-        if board.winner == Some(send_net_msg.local_player) {
-            for mut text in &mut text {
-                text.sections[0].value = "you win!!".to_string();
-            }
-        } else {
-            for mut text in &mut text {
-                text.sections[0].value = "lol loser".to_string();
-            }
-        }
-        if send_net_msg.local_player == 1 {
+    if send_net_msg.start {
+        if board.player_turn == 1 {
             for mut handle in &mut display_turn.iter_mut() {
                 *handle = asset_server.load("red_circle.png");
             }
         } else {
             for mut handle in &mut display_turn.iter_mut() {
                 *handle = asset_server.load("yellow_circle.png");
+            }
+        }
+    } else if send_net_msg.local_player == 3 {
+        for mut handle in &mut display_turn.iter_mut() {
+            *handle = asset_server.load("spec.png");
+        }
+    } else {
+        for mut handle in &mut display_turn.iter_mut() {
+            *handle = asset_server.load("connecting.png");
+        }
+    }
+    if board.winner.is_some() {
+        if send_net_msg.start {
+            if board.winner == Some(send_net_msg.local_player) {
+                for mut text in &mut text {
+                    text.sections[0].value = "you win!!".to_string();
+                }
+            } else {
+                for mut text in &mut text {
+                    text.sections[0].value = "lol loser".to_string();
+                }
+            }
+        } else {
+            for mut text in &mut text {
+                text.sections[0].value = "game over".to_string();
+            }
+        }
+        if send_net_msg.start {
+            if send_net_msg.local_player == 1 {
+                for mut handle in &mut display_turn.iter_mut() {
+                    *handle = asset_server.load("red_circle.png");
+                }
+            } else {
+                for mut handle in &mut display_turn.iter_mut() {
+                    *handle = asset_server.load("yellow_circle.png");
+                }
+            }
+        } else {
+            for mut handle in &mut display_turn.iter_mut() {
+                *handle = asset_server.load("spec.png");
             }
         }
     }
