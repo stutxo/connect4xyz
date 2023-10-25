@@ -6,6 +6,7 @@ use crate::{
     components::{CoinMove, CoinSlot, DisplayTurn, ReplayButton, TextChanges, TopRow},
     messages::NetworkMessage,
     resources::{Board, PlayerMove, SendNetMsg},
+    AppState,
 };
 
 use nanoid::nanoid;
@@ -37,13 +38,6 @@ impl Plugin for Connect4GuiPlugin {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
-pub enum AppState {
-    #[default]
-    Menu,
-    InGame,
-}
-
 #[derive(Resource)]
 struct MenuData {
     button_entity: Entity,
@@ -53,7 +47,11 @@ const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 const PRESSED_BUTTON: Color = Color::rgb(0.20, 0.20, 0.20);
 
-fn setup(mut commands: Commands, mut next_state: ResMut<NextState<AppState>>) {
+fn setup(
+    mut commands: Commands,
+    mut next_state: ResMut<NextState<AppState>>,
+    mut send_net_msg: ResMut<SendNetMsg>,
+) {
     commands.spawn(Camera2dBundle {
         camera_2d: Camera2d {
             clear_color: ClearColorConfig::Custom(Color::WHITE),
@@ -63,6 +61,7 @@ fn setup(mut commands: Commands, mut next_state: ResMut<NextState<AppState>>) {
 
     #[cfg(target_arch = "wasm32")]
     if is_game_id_present() {
+        send_net_msg.created_game = false;
         next_state.set(AppState::InGame);
     }
 }

@@ -14,9 +14,10 @@ use wasm_bindgen_futures::spawn_local;
 
 use crate::{
     components::{CoinMove, ReplayButton},
-    gui_plugin::{check_player_connection_and_hide_button, AppState},
+    gui_plugin::check_player_connection_and_hide_button,
     messages::NetworkMessage,
     resources::{Board, NetworkStuff, NostrStuff, PlayerMove, SendNetMsg},
+    AppState,
 };
 
 const COIN_SIZE: Vec2 = Vec2::new(40.0, 40.0);
@@ -44,6 +45,9 @@ fn setup(
     let (send_tx, send_rx) = futures::channel::mpsc::channel::<String>(1000);
     let (input_tx, mut input_rx) = futures::channel::mpsc::channel::<String>(1000);
 
+    let input_tx_clone = input_tx.clone();
+    let send_net_msg_clone = send_net_msg.clone();
+
     network_stuff.read = Some(send_rx);
     send_net_msg.send = Some(input_tx);
 
@@ -64,20 +68,6 @@ fn setup(
         let location = web_sys::window().unwrap().location();
 
         let tag = location.pathname().unwrap().to_string();
-
-        let lfg_msg = NetworkMessage::Lfg;
-        let serialized_message = serde_json::to_string(&lfg_msg).unwrap();
-
-        let broadcast_peer = ClientMessage::new_event(
-            EventBuilder::new_text_note(serialized_message, &[Tag::Hashtag(tag.clone())])
-                .to_event(&nostr_keys.lock().unwrap())
-                .unwrap(),
-        );
-
-        //send start up game message
-
-        client.send_msg(broadcast_peer).await.unwrap();
-        info!("sending LFG message");
 
         let client_clone = client.clone();
         let tag_clone = tag.clone();
@@ -100,10 +90,19 @@ fn setup(
 
         client.subscribe(vec![subscription]).await;
 
+        if send_net_msg_clone.created_game {
+            let lfg_msg = NetworkMessage::Lfg;
+            let serialized_message = serde_json::to_string(&lfg_msg).unwrap();
+
+            match input_tx_clone.clone().try_send(serialized_message) {
+                Ok(()) => {}
+                Err(e) => error!("Error sending message: {} CHANNEL FULL???", e),
+            };
+        }
+
         client
             .handle_notifications(|notification| async {
                 if let RelayPoolNotification::Event(_url, event) = notification {
-                    info!("EGG {:?}", event);
                     match send_tx.clone().try_send(event.content.clone()) {
                         Ok(()) => {}
                         Err(e) => error!("Error sending message: {} CHANNEL FULL???", e),

@@ -101,11 +101,12 @@ impl NetworkStuff {
     }
 }
 
-#[derive(Resource)]
+#[derive(Resource, Clone)]
 pub struct SendNetMsg {
     pub send: Option<Sender<String>>,
     pub start: bool,
     pub local_player: usize,
+    pub created_game: bool,
 }
 
 impl SendNetMsg {
@@ -114,6 +115,7 @@ impl SendNetMsg {
             send: None,
             start: false,
             local_player: 0,
+            created_game: true,
         }
     }
 }
