@@ -8,6 +8,11 @@ use crate::{
     resources::{Board, PlayerMove, SendNetMsg},
 };
 
+use nanoid::nanoid;
+
+use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+use web_sys::{window, History};
+
 const COIN_SIZE: Vec2 = Vec2::new(40.0, 40.0);
 const COLUMNS: usize = 7;
 const ROWS: usize = 7;
@@ -17,16 +22,38 @@ pub struct Connect4GuiPlugin;
 
 impl Plugin for Connect4GuiPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(Board::new())
+        app.add_state::<AppState>()
+            .insert_resource(Board::new())
             .add_systems(Startup, setup)
+            .add_systems(OnEnter(AppState::Menu), setup_menu)
+            .add_systems(Update, menu.run_if(in_state(AppState::Menu)))
+            .add_systems(OnExit(AppState::Menu), cleanup_menu)
+            .add_systems(OnEnter(AppState::InGame), setup_game)
             .add_systems(
                 Update,
-                (place, move_coin.after(place), update_text.after(move_coin)),
+                (place, move_coin.after(place), update_text.after(move_coin))
+                    .run_if(in_state(AppState::InGame)),
             );
     }
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum AppState {
+    #[default]
+    Menu,
+    InGame,
+}
+
+#[derive(Resource)]
+struct MenuData {
+    button_entity: Entity,
+}
+
+const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
+const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
+const PRESSED_BUTTON: Color = Color::rgb(0.20, 0.20, 0.20);
+
+fn setup(mut commands: Commands, mut next_state: ResMut<NextState<AppState>>) {
     commands.spawn(Camera2dBundle {
         camera_2d: Camera2d {
             clear_color: ClearColorConfig::Custom(Color::WHITE),
@@ -34,6 +61,119 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ..Default::default()
     });
 
+    #[cfg(target_arch = "wasm32")]
+    if is_game_id_present() {
+        next_state.set(AppState::InGame);
+    }
+}
+
+pub fn is_game_id_present() -> bool {
+    #[cfg(target_arch = "wasm32")]
+    {
+        if let Some(location) = window().and_then(|w| w.location().pathname().ok()) {
+            return !location.is_empty() && location != "/";
+        }
+    }
+    false
+}
+
+fn setup_menu(mut commands: Commands) {
+    let button_entity = commands
+        .spawn(NodeBundle {
+            style: Style {
+                // center button
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|parent| {
+            parent
+                .spawn(ButtonBundle {
+                    style: Style {
+                        width: Val::Px(150.),
+                        height: Val::Px(65.),
+                        // horizontally center child text
+                        justify_content: JustifyContent::Center,
+                        // vertically center child text
+                        align_items: AlignItems::Center,
+                        ..default()
+                    },
+                    background_color: NORMAL_BUTTON.into(),
+                    ..default()
+                })
+                .with_children(|parent| {
+                    parent.spawn(TextBundle::from_section(
+                        "Create New Game",
+                        TextStyle {
+                            font_size: 15.0,
+                            color: Color::rgb(0.9, 0.9, 0.9),
+                            ..default()
+                        },
+                    ));
+                });
+        })
+        .id();
+    commands.insert_resource(MenuData { button_entity });
+}
+
+fn menu(
+    mut next_state: ResMut<NextState<AppState>>,
+    mut interaction_query: Query<
+        (&Interaction, &mut BackgroundColor),
+        (Changed<Interaction>, With<Button>),
+    >,
+) {
+    for (interaction, mut color) in &mut interaction_query {
+        match *interaction {
+            Interaction::Pressed => {
+                *color = PRESSED_BUTTON.into();
+                let alphabet: [char; 52] = [
+                    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
+                    'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F',
+                    'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
+                    'W', 'X', 'Y', 'Z',
+                ];
+
+                let game_id = nanoid!(8, &alphabet);
+
+                let location = web_sys::window().unwrap().location();
+
+                let host = location.host().unwrap();
+
+                let protocol = location.protocol().unwrap();
+
+                let full_url = format!("{protocol}//{host}/{game_id}");
+
+                let history: History = window().unwrap().history().unwrap();
+                history
+                    .push_state_with_url(&JsValue::from_str("Create New Game"), "", Some(&full_url))
+                    .expect("pushState failed");
+
+                let window = web_sys::window().unwrap();
+                let event = web_sys::CustomEvent::new("urlChanged").unwrap();
+                window.dispatch_event(&event).unwrap();
+
+                next_state.set(AppState::InGame);
+            }
+            Interaction::Hovered => {
+                *color = HOVERED_BUTTON.into();
+            }
+            Interaction::None => {
+                *color = NORMAL_BUTTON.into();
+            }
+        }
+    }
+}
+
+fn cleanup_menu(mut commands: Commands, menu_data: Res<MenuData>) {
+    commands.entity(menu_data.button_entity).despawn_recursive();
+}
+
+fn setup_game(mut commands: Commands, asset_server: Res<AssetServer>) {
     let offset_x = -COIN_SIZE.x * (COLUMNS as f32) / 2.0;
     let offset_y = -COIN_SIZE.y * (ROWS as f32) / 2.0;
 
@@ -467,4 +607,16 @@ fn update_text(
 
 fn has_winning_move(moves: &[PlayerMove]) -> bool {
     moves.iter().any(|move_| move_.is_winner(moves))
+}
+
+#[wasm_bindgen]
+extern "C" {
+    fn hideCopyButton();
+}
+
+#[wasm_bindgen]
+pub fn check_player_connection_and_hide_button(player_connected: bool) {
+    if player_connected {
+        hideCopyButton();
+    }
 }

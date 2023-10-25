@@ -14,6 +14,7 @@ use wasm_bindgen_futures::spawn_local;
 
 use crate::{
     components::{CoinMove, ReplayButton},
+    gui_plugin::{check_player_connection_and_hide_button, AppState},
     messages::NetworkMessage,
     resources::{Board, NetworkStuff, NostrStuff, PlayerMove, SendNetMsg},
 };
@@ -30,8 +31,8 @@ impl Plugin for NostrPlugin {
         app.insert_resource(NostrStuff::new())
             .insert_resource(NetworkStuff::new())
             .insert_resource(SendNetMsg::new())
-            .add_systems(Startup, setup)
-            .add_systems(Update, handle_net_msg);
+            .add_systems(OnEnter(AppState::InGame), setup)
+            .add_systems(Update, handle_net_msg.run_if(in_state(AppState::InGame)));
     }
 }
 
@@ -60,29 +61,6 @@ fn setup(
         client.add_relay("wss://nostr.lu.ke").await.unwrap();
         client.connect().await;
 
-        #[cfg(target_arch = "wasm32")]
-        if !is_game_id_present() {
-            let alphabet: [char; 26] = [
-                'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
-                'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-            ];
-
-            let game_id = nanoid!(8, &alphabet);
-
-            let location = web_sys::window().unwrap().location();
-
-            let host = location.host().unwrap();
-
-            let protocol = location.protocol().unwrap();
-
-            let full_url = format!("{protocol}//{host}/{game_id}");
-
-            let history: History = window().unwrap().history().unwrap();
-            history
-                .push_state_with_url(&JsValue::from_str("New Game"), "", Some(&full_url))
-                .expect("pushState failed");
-        };
-
         let location = web_sys::window().unwrap().location();
 
         let tag = location.pathname().unwrap().to_string();
@@ -110,27 +88,22 @@ fn setup(
                 info!("sending {:?}", message);
 
                 let input = ClientMessage::new_event(
-                    EventBuilder::new_text_note(
-                        message,
-                        &[
-                            Tag::Hashtag(tag_clone.clone()),
-                            Tag::Hashtag("MOVE TEST".to_string()),
-                        ],
-                    )
-                    .to_event(&nostr_keys_clone.lock().unwrap())
-                    .unwrap(),
+                    EventBuilder::new_text_note(message, &[Tag::Hashtag(tag_clone.clone())])
+                        .to_event(&nostr_keys_clone.lock().unwrap())
+                        .unwrap(),
                 );
                 client_clone.clone().send_msg(input).await.unwrap();
             }
         });
 
-        let subscription = Filter::new().since(Timestamp::now()).hashtag(tag.clone());
+        let subscription = Filter::new().hashtag(tag.clone());
 
         client.subscribe(vec![subscription]).await;
 
         client
             .handle_notifications(|notification| async {
                 if let RelayPoolNotification::Event(_url, event) = notification {
+                    info!("EGG {:?}", event);
                     match send_tx.clone().try_send(event.content.clone()) {
                         Ok(()) => {}
                         Err(e) => error!("Error sending message: {} CHANNEL FULL???", e),
@@ -173,6 +146,7 @@ fn handle_net_msg(
                                 Ok(()) => {}
                                 Err(e) => error!("Error sending message: {} CHANNEL FULL???", e),
                             };
+                            check_player_connection_and_hide_button(true);
                             send_net_msg.start = true;
                         } else {
                             let spectate_msg = NetworkMessage::Spectate(board.moves.clone());
@@ -194,6 +168,7 @@ fn handle_net_msg(
                             return;
                         }
                         info!("received start game");
+
                         send_net_msg.local_player = 2;
                         let start_game_msg = NetworkMessage::StartGame;
                         let serialized_message = serde_json::to_string(&start_game_msg).unwrap();
@@ -207,6 +182,7 @@ fn handle_net_msg(
                             Ok(()) => {}
                             Err(e) => error!("Error sending message: {} CHANNEL FULL???", e),
                         };
+                        check_player_connection_and_hide_button(true);
                         send_net_msg.start = true;
                     }
                     NetworkMessage::Replay => {
@@ -284,14 +260,4 @@ fn handle_net_msg(
             }
         }
     }
-}
-
-pub fn is_game_id_present() -> bool {
-    #[cfg(target_arch = "wasm32")]
-    {
-        if let Some(location) = window().and_then(|w| w.location().pathname().ok()) {
-            return !location.is_empty() && location != "/";
-        }
-    }
-    false
 }

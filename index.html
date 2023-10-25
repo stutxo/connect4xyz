@@ -24,28 +24,40 @@
             overflow: hidden;
         }
 
-        /* #copyButton {
+        #copyButton {
             position: absolute;
             cursor: pointer;
             touch-action: manipulation;
-            top: 30%;
+            top: 10%;
             left: 50%;
-            transform: translate(-50%, -50%); */
-        /* } */
+            transform: translate(-50%, -50%);
+        }
     </style>
 </head>
 
 <body>
 
-    <!-- <button id="copyButton" onclick="copyToClipboard()">Share this URL to play 📋 <span id="url"></span></button>
+    <button id="copyButton" onclick="copyToClipboard()">Share this URL to play 📋 <span id="url"></span></button>
 
     <script>
+        function shouldDisplayButton() {
+            const currentUrl = window.location.href;
+            const locationPath = window.location.pathname;
+
+            document.getElementById('url').textContent = currentUrl;
+
+            if (locationPath && locationPath !== "/") {
+                document.getElementById('copyButton').style.display = 'block';
+            } else {
+                hideCopyButton();
+            }
+        }
+
         document.getElementById('url').textContent = window.location.href;
+
         async function copyToClipboard() {
             try {
-
                 await navigator.clipboard.writeText(window.location.href);
-
             } catch (err) {
                 console.error('Failed to copy URL: ', err);
             }
@@ -54,7 +66,15 @@
         function hideCopyButton() {
             document.getElementById('copyButton').style.display = 'none';
         }
-    </script> -->
+
+        window.addEventListener('urlChanged', function () {
+            shouldDisplayButton();
+        });
+
+        shouldDisplayButton();
+    </script>
+
 </body>
+
 
 </html>
