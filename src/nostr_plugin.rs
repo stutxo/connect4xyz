@@ -15,7 +15,7 @@ use wasm_bindgen_futures::spawn_local;
 use crate::{
     components::{CoinMove, ReplayButton},
     gui_plugin::check_player_connection_and_hide_button,
-    messages::NetworkMessage,
+    messages::{NetworkMessage, Players},
     resources::{Board, NetworkStuff, PlayerMove, SendNetMsg},
     AppState,
 };
@@ -54,10 +54,13 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
 
         #[cfg(target_arch = "wasm32")]
         client.add_relay("wss://relay.damus.io").await.unwrap();
-        #[cfg(target_arch = "wasm32")]
-        client.add_relay("wss://relay.snort.social").await.unwrap();
-        #[cfg(target_arch = "wasm32")]
-        client.add_relay("wss://nostr.lu.ke").await.unwrap();
+
+        // #[cfg(target_arch = "wasm32")]
+        // client.add_relay("wss://relay.snort.social").await.unwrap();
+
+        //doesnt support something
+        // #[cfg(target_arch = "wasm32")]
+        // client.add_relay("wss://nostr.lu.ke").await.unwrap();
         client.connect().await;
 
         let client_clone = client.clone();
@@ -106,15 +109,45 @@ fn handle_net_msg(
             match serde_json::from_str::<NetworkMessage>(&message) {
                 Ok(network_message) => match network_message {
                     NetworkMessage::NewGame => {
+                        if send_net_msg.start {
+                            return;
+                        }
                         info!("received new game msg ");
                         send_net_msg.clone().join_game();
                     }
-                    NetworkMessage::JoinGame => {
-                        info!("received join game msg ");
-                        send_net_msg.clone().start_game();
+                    NetworkMessage::JoinGame(other_player) => {
+                        if send_net_msg.start {
+                            return;
+                        }
+                        let players = Players::new(send_net_msg.local_player, other_player);
+                        send_net_msg.clone().start_game(players);
+                        send_net_msg.start = true;
+                        send_net_msg.player_type = 1;
+                        info!("received join game msg {:?}", send_net_msg.player_type);
                     }
-                    NetworkMessage::StartGame => {
-                        info!("received start game msg");
+                    NetworkMessage::StartGame(players) => {
+                        if send_net_msg.start {
+                            return;
+                        }
+
+                        if send_net_msg.local_player != players.player1
+                            && send_net_msg.local_player != players.player2
+                        {
+                            send_net_msg.player_type = 3;
+                            info!(
+                                "received start game msg {:?}, {:?}",
+                                players, send_net_msg.player_type
+                            );
+                            send_net_msg.start = true;
+                            return;
+                        }
+
+                        send_net_msg.start = true;
+                        send_net_msg.player_type = 2;
+                        info!(
+                            "received start game msg {:?}, {:?}",
+                            players, send_net_msg.player_type
+                        );
                     }
 
                     NetworkMessage::Input(new_input) => {

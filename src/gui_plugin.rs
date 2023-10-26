@@ -497,6 +497,9 @@ fn update_text(
     board: Res<Board>,
     send_net_msg: Res<SendNetMsg>,
 ) {
+    if send_net_msg.start {
+        check_player_connection_and_hide_button();
+    }
     if send_net_msg.player_type == 0 {
         if !send_net_msg.start {
             for mut text in &mut text {
@@ -513,7 +516,7 @@ fn update_text(
         }
     } else {
         for mut text in &mut text {
-            text.sections[0].value = "enemy turn...".to_string();
+            text.sections[0].value = "waiting for player 2...".to_string();
         }
     }
 
@@ -580,8 +583,6 @@ extern "C" {
 }
 
 #[wasm_bindgen]
-pub fn check_player_connection_and_hide_button(player_connected: bool) {
-    if player_connected {
-        hideCopyButton();
-    }
+pub fn check_player_connection_and_hide_button() {
+    hideCopyButton();
 }

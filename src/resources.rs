@@ -1,10 +1,16 @@
-use bevy::prelude::{error, info, Resource};
+use bevy::{
+    prelude::{error, info, Resource},
+    time::Time,
+};
 use futures::channel::mpsc::{Receiver, Sender};
-use nostr_sdk::{secp256k1::XOnlyPublicKey, serde_json, ClientMessage, EventBuilder, Keys, Tag};
+use nostr_sdk::{
+    prelude::kind, secp256k1::XOnlyPublicKey, serde_json, ClientMessage, Event, EventBuilder, Keys,
+    Kind, Tag, Timestamp,
+};
 
 use serde::{Deserialize, Serialize};
 
-use crate::messages::NetworkMessage;
+use crate::messages::{NetworkMessage, Players};
 
 #[derive(Resource)]
 pub struct Board {
@@ -18,7 +24,7 @@ impl Board {
     pub fn new() -> Self {
         Self {
             moves: Vec::new(),
-            player_turn: 0,
+            player_turn: 1,
             winner: None,
             in_progress: false,
         }
@@ -122,12 +128,16 @@ impl SendNetMsg {
         let serialized_message = serde_json::to_string(&msg).unwrap();
 
         let nostr_msg = ClientMessage::new_event(
-            EventBuilder::new_text_note(serialized_message, &[self.game_tag])
-                .to_event(&self.nostr_keys)
-                .unwrap(),
+            EventBuilder::new(
+                Kind::Replaceable(11111),
+                serialized_message,
+                &[self.game_tag],
+            )
+            .to_event(&self.nostr_keys)
+            .unwrap(),
         );
 
-        info!("sending new game msg");
+        info!("sending new game msg {:?}", nostr_msg);
 
         match self.send.clone().unwrap().try_send(nostr_msg) {
             Ok(()) => {}
@@ -136,16 +146,23 @@ impl SendNetMsg {
     }
 
     pub fn join_game(self) {
-        let msg = NetworkMessage::JoinGame;
+        let msg = NetworkMessage::JoinGame(self.local_player);
         let serialized_message = serde_json::to_string(&msg).unwrap();
 
+        //nip40 Expiration Timestamp https://github.com/nostr-protocol/nips/blob/master/40.md
+        let expire = Tag::Expiration(Timestamp::now() + 3_i64);
+
         let nostr_msg = ClientMessage::new_event(
-            EventBuilder::new_text_note(serialized_message, &[self.game_tag])
-                .to_event(&self.nostr_keys)
-                .unwrap(),
+            EventBuilder::new(
+                Kind::Ephemeral(21000),
+                serialized_message,
+                &[self.game_tag, expire],
+            )
+            .to_event(&self.nostr_keys)
+            .unwrap(),
         );
 
-        info!("sending join game msg");
+        info!("sending join game msg {:?}", nostr_msg);
 
         match self.send.clone().unwrap().try_send(nostr_msg) {
             Ok(()) => {}
@@ -153,17 +170,21 @@ impl SendNetMsg {
         };
     }
 
-    pub fn start_game(self) {
-        let msg = NetworkMessage::StartGame;
+    pub fn start_game(self, players: Players) {
+        let msg = NetworkMessage::StartGame(players);
         let serialized_message = serde_json::to_string(&msg).unwrap();
 
         let nostr_msg = ClientMessage::new_event(
-            EventBuilder::new_text_note(serialized_message, &[self.game_tag])
-                .to_event(&self.nostr_keys)
-                .unwrap(),
+            EventBuilder::new(
+                Kind::Replaceable(11111),
+                serialized_message,
+                &[self.game_tag],
+            )
+            .to_event(&self.nostr_keys)
+            .unwrap(),
         );
 
-        info!("sending start game msg");
+        info!("sending start game msg {:?}", nostr_msg);
 
         match self.send.clone().unwrap().try_send(nostr_msg) {
             Ok(()) => {}
@@ -181,7 +202,7 @@ impl SendNetMsg {
                 .unwrap(),
         );
 
-        info!("sending input msg");
+        info!("sending input game msg {:?}", nostr_msg);
 
         match self.send.clone().unwrap().try_send(nostr_msg) {
             Ok(()) => {}
@@ -199,7 +220,7 @@ impl SendNetMsg {
                 .unwrap(),
         );
 
-        info!("sending replay msg");
+        info!("sending replay game msg {:?}", nostr_msg);
 
         match self.send.clone().unwrap().try_send(nostr_msg) {
             Ok(()) => {}
