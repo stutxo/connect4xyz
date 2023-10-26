@@ -1,12 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use crate::resources::PlayerMove;
-
 #[derive(Serialize, Deserialize, Debug)]
 pub enum NetworkMessage {
-    Lfg,
+    NewGame,
+    JoinGame,
     StartGame,
     Input(usize),
     Replay,
-    Spectate(Vec<PlayerMove>),
 }

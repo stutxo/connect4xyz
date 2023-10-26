@@ -276,7 +276,6 @@ fn place(
     mut board: ResMut<Board>,
     coin_query: Query<Entity, With<CoinMove>>,
     mut replay_button: Query<(&mut ReplayButton, &Transform, &mut Visibility), Without<CoinSlot>>,
-
     mut send_net_msg: ResMut<SendNetMsg>,
 ) {
     let (camera, camera_transform) = camera_query.single();
@@ -341,18 +340,7 @@ fn place(
                                 commands.entity(entity).despawn();
                             }
                             *visibility = Visibility::Hidden;
-                            let replay_msg = NetworkMessage::Replay;
-                            let serialized_message = serde_json::to_string(&replay_msg).unwrap();
-
-                            match send_net_msg
-                                .send
-                                .as_mut()
-                                .unwrap()
-                                .try_send(serialized_message)
-                            {
-                                Ok(()) => {}
-                                Err(e) => error!("Error sending message: {} CHANNEL FULL???", e),
-                            };
+                            send_net_msg.clone().send_replay();
                             break;
                         }
                     }
@@ -366,18 +354,7 @@ fn place(
                                 commands.entity(entity).despawn();
                             }
                             *visibility = Visibility::Hidden;
-                            let replay_msg = NetworkMessage::Replay;
-                            let serialized_message = serde_json::to_string(&replay_msg).unwrap();
-
-                            match send_net_msg
-                                .send
-                                .as_mut()
-                                .unwrap()
-                                .try_send(serialized_message)
-                            {
-                                Ok(()) => {}
-                                Err(e) => error!("Error sending message: {} CHANNEL FULL???", e),
-                            };
+                            send_net_msg.clone().send_replay();
                             break;
                         }
                     }
@@ -391,7 +368,7 @@ fn place(
             if coin.r == 6 && !board.in_progress {
                 *visibility = Visibility::Visible;
 
-                if send_net_msg.local_player == 1 {
+                if send_net_msg.player_type == 1 {
                     for mut handle in &mut update_sprite.iter_mut() {
                         *handle = asset_server.load("red_circle.png");
                     }
@@ -409,28 +386,17 @@ fn place(
             if board.in_progress {
                 continue;
             }
-            if board.player_turn == send_net_msg.local_player
+            if board.player_turn == send_net_msg.player_type
                 && (mouse.just_pressed(MouseButton::Left)
                     || mouse.just_pressed(MouseButton::Right)
                     || touches.iter_just_pressed().any(|_| true))
             {
                 let row_pos = board.moves.iter().filter(|m| m.column == coin.c).count();
                 if row_pos <= 5 {
-                    let player_move = PlayerMove::new(board.player_turn, coin.c, row_pos);
+                    let player_move = PlayerMove::new(send_net_msg.player_type, coin.c, row_pos);
                     board.moves.push(player_move);
 
-                    let input_msg = NetworkMessage::Input(coin.c);
-                    let serialized_message = serde_json::to_string(&input_msg).unwrap();
-
-                    match send_net_msg
-                        .send
-                        .as_mut()
-                        .unwrap()
-                        .try_send(serialized_message)
-                    {
-                        Ok(()) => {}
-                        Err(e) => error!("Error sending message: {} CHANNEL FULL???", e),
-                    };
+                    send_net_msg.clone().send_input(coin.c);
 
                     let offset_x = -COIN_SIZE.x * (COLUMNS as f32) / 2.0;
                     let offset_y = -COIN_SIZE.y * (ROWS as f32) / 2.0;
@@ -531,17 +497,17 @@ fn update_text(
     board: Res<Board>,
     send_net_msg: Res<SendNetMsg>,
 ) {
-    if send_net_msg.local_player == 0 {
+    if send_net_msg.player_type == 0 {
         if !send_net_msg.start {
             for mut text in &mut text {
                 text.sections[0].value = "waiting for player to join...".to_string();
             }
         }
-    } else if send_net_msg.local_player == 3 {
+    } else if send_net_msg.player_type == 3 {
         for mut text in &mut text {
             text.sections[0].value = "spectating(doesnt work yet)".to_string();
         }
-    } else if board.player_turn == send_net_msg.local_player {
+    } else if board.player_turn == send_net_msg.player_type {
         for mut text in &mut text {
             text.sections[0].value = "your turn".to_string();
         }
@@ -561,7 +527,7 @@ fn update_text(
                 *handle = asset_server.load("yellow_circle.png");
             }
         }
-    } else if send_net_msg.local_player == 3 {
+    } else if send_net_msg.player_type == 3 {
         for mut handle in &mut display_turn.iter_mut() {
             *handle = asset_server.load("spec.png");
         }
@@ -572,7 +538,7 @@ fn update_text(
     }
     if board.winner.is_some() {
         if send_net_msg.start {
-            if board.winner == Some(send_net_msg.local_player) {
+            if board.winner == send_net_msg.player_type.into() {
                 for mut text in &mut text {
                     text.sections[0].value = "you win!!".to_string();
                 }
@@ -587,7 +553,7 @@ fn update_text(
             }
         }
         if send_net_msg.start {
-            if send_net_msg.local_player == 1 {
+            if send_net_msg.player_type == 1 {
                 for mut handle in &mut display_turn.iter_mut() {
                     *handle = asset_server.load("red_circle.png");
                 }

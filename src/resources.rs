@@ -1,8 +1,10 @@
-use bevy::prelude::Resource;
+use bevy::prelude::{error, info, Resource};
 use futures::channel::mpsc::{Receiver, Sender};
-use nostr_sdk::Keys;
+use nostr_sdk::{secp256k1::XOnlyPublicKey, serde_json, ClientMessage, EventBuilder, Keys, Tag};
 
 use serde::{Deserialize, Serialize};
+
+use crate::messages::NetworkMessage;
 
 #[derive(Resource)]
 pub struct Board {
@@ -16,7 +18,7 @@ impl Board {
     pub fn new() -> Self {
         Self {
             moves: Vec::new(),
-            player_turn: 1,
+            player_turn: 0,
             winner: None,
             in_progress: false,
         }
@@ -78,19 +80,6 @@ impl PlayerMove {
 }
 
 #[derive(Resource)]
-pub struct NostrStuff {
-    pub local_keys: Keys,
-}
-
-impl NostrStuff {
-    pub fn new() -> Self {
-        Self {
-            local_keys: Keys::generate(),
-        }
-    }
-}
-
-#[derive(Resource)]
 pub struct NetworkStuff {
     pub read: Option<Receiver<String>>,
 }
@@ -103,19 +92,118 @@ impl NetworkStuff {
 
 #[derive(Resource, Clone)]
 pub struct SendNetMsg {
-    pub send: Option<Sender<String>>,
+    pub send: Option<Sender<ClientMessage>>,
     pub start: bool,
-    pub local_player: usize,
+    pub local_player: XOnlyPublicKey,
     pub created_game: bool,
+    pub nostr_keys: Keys,
+    pub game_tag: Tag,
+    pub player_type: usize,
 }
 
 impl SendNetMsg {
     pub fn new() -> Self {
+        let nostr_keys = Keys::generate();
+        let local_player = nostr_keys.public_key();
+
         Self {
             send: None,
             start: false,
-            local_player: 0,
+            local_player,
             created_game: true,
+            nostr_keys,
+            game_tag: Tag::Hashtag("".to_string()),
+            player_type: 0,
         }
+    }
+
+    pub fn new_game(self) {
+        let msg = NetworkMessage::NewGame;
+        let serialized_message = serde_json::to_string(&msg).unwrap();
+
+        let nostr_msg = ClientMessage::new_event(
+            EventBuilder::new_text_note(serialized_message, &[self.game_tag])
+                .to_event(&self.nostr_keys)
+                .unwrap(),
+        );
+
+        info!("sending new game msg");
+
+        match self.send.clone().unwrap().try_send(nostr_msg) {
+            Ok(()) => {}
+            Err(e) => error!("Error sending new_game message: {}", e),
+        };
+    }
+
+    pub fn join_game(self) {
+        let msg = NetworkMessage::JoinGame;
+        let serialized_message = serde_json::to_string(&msg).unwrap();
+
+        let nostr_msg = ClientMessage::new_event(
+            EventBuilder::new_text_note(serialized_message, &[self.game_tag])
+                .to_event(&self.nostr_keys)
+                .unwrap(),
+        );
+
+        info!("sending join game msg");
+
+        match self.send.clone().unwrap().try_send(nostr_msg) {
+            Ok(()) => {}
+            Err(e) => error!("Error sending join_game message: {}", e),
+        };
+    }
+
+    pub fn start_game(self) {
+        let msg = NetworkMessage::StartGame;
+        let serialized_message = serde_json::to_string(&msg).unwrap();
+
+        let nostr_msg = ClientMessage::new_event(
+            EventBuilder::new_text_note(serialized_message, &[self.game_tag])
+                .to_event(&self.nostr_keys)
+                .unwrap(),
+        );
+
+        info!("sending start game msg");
+
+        match self.send.clone().unwrap().try_send(nostr_msg) {
+            Ok(()) => {}
+            Err(e) => error!("Error sending start_game message: {}", e),
+        };
+    }
+
+    pub fn send_input(self, input: usize) {
+        let msg = NetworkMessage::Input(input);
+        let serialized_message = serde_json::to_string(&msg).unwrap();
+
+        let nostr_msg = ClientMessage::new_event(
+            EventBuilder::new_text_note(serialized_message, &[self.game_tag])
+                .to_event(&self.nostr_keys)
+                .unwrap(),
+        );
+
+        info!("sending input msg");
+
+        match self.send.clone().unwrap().try_send(nostr_msg) {
+            Ok(()) => {}
+            Err(e) => error!("Error sending send_input message: {}", e),
+        };
+    }
+
+    pub fn send_replay(self) {
+        let msg = NetworkMessage::Replay;
+        let serialized_message = serde_json::to_string(&msg).unwrap();
+
+        let nostr_msg = ClientMessage::new_event(
+            EventBuilder::new_text_note(serialized_message, &[self.game_tag])
+                .to_event(&self.nostr_keys)
+                .unwrap(),
+        );
+
+        info!("sending replay msg");
+
+        match self.send.clone().unwrap().try_send(nostr_msg) {
+            Ok(()) => {}
+            Err(e) => error!("Error sending new_game message: {}", e),
+        };
     }
 }
