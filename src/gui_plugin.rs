@@ -539,7 +539,7 @@ fn update_text(
         }
     }
     if board.winner.is_some() {
-        if board.winner == send_net_msg.player_type.into() {
+        if board.winner != send_net_msg.player_type.into() {
             for mut text in &mut text {
                 text.sections[0].value = "you win!!".to_string();
             }
