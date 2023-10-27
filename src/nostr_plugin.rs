@@ -77,18 +77,22 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
 
         client
             .handle_notifications(|notification| async {
-                if let RelayPoolNotification::Event(url, event) = notification {
-                    info!("received event {:?}", url);
-                    if event.tags.contains(&Tag::Hashtag("new_game".to_string()))
-                        || event.tags.contains(&Tag::Hashtag("join_game".to_string()))
-                    {
-                        let subscription = Filter::new()
-                            .author(event.pubkey.to_string())
-                            .hashtag(tag.clone());
+                if let RelayPoolNotification::Event(_url, event) = notification {
+                    match serde_json::from_str::<NetworkMessage>(&event.content) {
+                        Ok(NetworkMessage::StartGame(players)) => {
+                            let subscription = Filter::new()
+                                .authors(vec![
+                                    players.player1.to_string(),
+                                    players.player2.to_string(),
+                                ])
+                                .hashtag(tag.clone());
 
-                        info!("sub to {:?}", event.pubkey.to_string());
+                            info!("sub to {:?}", players);
 
-                        client.subscribe(vec![subscription]).await;
+                            client.subscribe(vec![subscription]).await;
+                        }
+                        Ok(_) => {}
+                        Err(_) => {}
                     }
 
                     match send_tx.clone().try_send(event.content.clone()) {
@@ -139,6 +143,7 @@ fn handle_net_msg(
                         send_net_msg.clone().start_game(players);
                         send_net_msg.start = true;
                         send_net_msg.player_type = 1;
+                        info!("joined as player 1");
                     }
                     NetworkMessage::StartGame(players) => {
                         if send_net_msg.start {
@@ -149,25 +154,17 @@ fn handle_net_msg(
                             && send_net_msg.local_player != players.player2
                         {
                             send_net_msg.player_type = 3;
-                            info!(
-                                "received start game msg {:?}, {:?}",
-                                players, send_net_msg.player_type
-                            );
+                            info!("joined spectate mode");
                             send_net_msg.start = true;
                             return;
                         }
 
                         send_net_msg.start = true;
                         send_net_msg.player_type = 2;
-                        info!(
-                            "received start game msg {:?}, {:?}",
-                            players, send_net_msg.player_type
-                        );
+                        info!("joined as player 2");
                     }
 
                     NetworkMessage::Input(new_input) => {
-                        info!("received input {:?}", new_input);
-
                         let row_pos = board.moves.iter().filter(|m| m.column == new_input).count();
                         if row_pos <= 5 {
                             let player_move =

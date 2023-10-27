@@ -79,7 +79,6 @@ fn setup_menu(mut commands: Commands) {
     let button_entity = commands
         .spawn(NodeBundle {
             style: Style {
-                // center button
                 width: Val::Percent(100.),
                 height: Val::Percent(100.),
                 justify_content: JustifyContent::Center,
@@ -94,9 +93,7 @@ fn setup_menu(mut commands: Commands) {
                     style: Style {
                         width: Val::Px(150.),
                         height: Val::Px(65.),
-                        // horizontally center child text
                         justify_content: JustifyContent::Center,
-                        // vertically center child text
                         align_items: AlignItems::Center,
                         ..default()
                     },
@@ -136,7 +133,7 @@ fn menu(
                     'W', 'X', 'Y', 'Z',
                 ];
 
-                let game_id = nanoid!(8, &alphabet);
+                let game_id = nanoid!(6, &alphabet);
 
                 let location = web_sys::window().unwrap().location();
 
@@ -515,11 +512,11 @@ fn update_text(
         }
     } else if board.player_turn == send_net_msg.player_type {
         for mut text in &mut text {
-            text.sections[0].value = "your turn".to_string();
+            text.sections[0].value = "its your turn!".to_string();
         }
     } else {
         for mut text in &mut text {
-            text.sections[0].value = "waiting for player 2...".to_string();
+            text.sections[0].value = "player 2's turn...".to_string();
         }
     }
 
