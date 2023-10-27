@@ -28,17 +28,20 @@
             position: absolute;
             cursor: pointer;
             touch-action: manipulation;
-            top: 10%;
+            top: 15%;
             left: 50%;
             transform: translate(-50%, -50%);
-            margin-top: 2%;
         }
     </style>
 </head>
 
 <body>
 
+    <h1 style="position: absolute; top: 1%; left: 50%; transform: translate(-50%, -50%); text-align:center;">
+        connect4.xyz</h1>
+
     <button id="copyButton" onclick="copyToClipboard()">Share this URL to play 📋 <span id="url"></span></button>
+
 
     <script>
         function shouldDisplayButton() {

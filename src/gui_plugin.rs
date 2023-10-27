@@ -55,24 +55,6 @@ fn setup(
         ..Default::default()
     });
 
-    let text = Text::from_sections([TextSection::new(
-        "connect4.xyz",
-        TextStyle {
-            color: Color::BLACK,
-            font_size: 30.0,
-            ..Default::default()
-        },
-    )]);
-
-    commands.spawn(Text2dBundle {
-        text: text.with_alignment(TextAlignment::Center),
-        transform: Transform {
-            translation: Vec3::new(0., 300.0, 1.0),
-            ..default()
-        },
-        ..Default::default()
-    });
-
     #[cfg(target_arch = "wasm32")]
     if is_game_id_present() {
         send_net_msg.created_game = false;
@@ -228,7 +210,7 @@ fn setup_game(mut commands: Commands, asset_server: Res<AssetServer>) {
         }
     }
 
-    let text = Text::from_sections([TextSection::new(
+    let game_text = Text::from_sections([TextSection::new(
         String::new(),
         TextStyle {
             color: Color::BLACK,
@@ -251,7 +233,7 @@ fn setup_game(mut commands: Commands, asset_server: Res<AssetServer>) {
         .with_children(|parent| {
             parent
                 .spawn(Text2dBundle {
-                    text: text.with_alignment(TextAlignment::Center),
+                    text: game_text.with_alignment(TextAlignment::Center),
                     transform: Transform {
                         translation: Vec3::new(0., -20.0, 1.0),
                         ..default()
