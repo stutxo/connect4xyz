@@ -497,6 +497,7 @@ fn update_text(
     if send_net_msg.start {
         check_player_connection_and_hide_button();
     }
+
     if send_net_msg.player_type == 0 {
         if !send_net_msg.start {
             for mut text in &mut text {
@@ -517,40 +518,41 @@ fn update_text(
         }
     }
 
-    if send_net_msg.start {
-        if board.player_turn == 1 {
-            for mut handle in &mut display_turn.iter_mut() {
-                *handle = asset_server.load("red_circle.png");
-            }
-        } else if board.player_turn == 2 {
-            for mut handle in &mut display_turn.iter_mut() {
-                *handle = asset_server.load("yellow_circle.png");
-            }
+    let image_path = match board.player_turn {
+        1 => "red_circle.png",
+        2 => "yellow_circle.png",
+        _ => "",
+    };
+
+    if send_net_msg.player_type == 1 || send_net_msg.player_type == 2 {
+        for mut handle in &mut display_turn.iter_mut() {
+            *handle = asset_server.load(image_path);
         }
-        if send_net_msg.player_type == 3 {
-            for mut handle in &mut display_turn.iter_mut() {
-                *handle = asset_server.load("spec.png");
-            }
+    } else if send_net_msg.player_type == 3 {
+        for mut handle in &mut display_turn.iter_mut() {
+            *handle = asset_server.load("spec.png");
         }
     } else {
         for mut handle in &mut display_turn.iter_mut() {
             *handle = asset_server.load("connecting.png");
         }
     }
+    for mut handle in &mut display_turn.iter_mut() {
+        *handle = asset_server.load(image_path);
+    }
+
     if board.winner.is_some() {
         if board.winner == Some(send_net_msg.player_type) {
             for mut text in &mut text {
                 text.sections[0].value = "you win!!".to_string();
             }
+        } else if send_net_msg.player_type == 3 {
+            for mut text in &mut text {
+                text.sections[0].value = "game over".to_string();
+            }
         } else {
             for mut text in &mut text {
                 text.sections[0].value = "lol loser".to_string();
-            }
-        }
-
-        if send_net_msg.player_type == 3 {
-            for mut text in &mut text {
-                text.sections[0].value = "game over".to_string();
             }
         }
 

@@ -130,8 +130,9 @@ fn handle_net_msg(
                         }
 
                         let players = Players::new(send_net_msg.local_player, other_player);
-                        send_net_msg.clone().start_game(players);
                         send_net_msg.start = true;
+                        send_net_msg.clone().start_game(players);
+
                         send_net_msg.player_type = 1;
                         info!("joined as player 1");
                     }
