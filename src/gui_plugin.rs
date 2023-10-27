@@ -1,10 +1,7 @@
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
 
-use nostr_sdk::serde_json;
-
 use crate::{
     components::{CoinMove, CoinSlot, DisplayTurn, ReplayButton, TextChanges, TopRow},
-    messages::NetworkMessage,
     resources::{Board, PlayerMove, SendNetMsg},
     AppState,
 };
@@ -525,13 +522,14 @@ fn update_text(
             for mut handle in &mut display_turn.iter_mut() {
                 *handle = asset_server.load("red_circle.png");
             }
-        } else if send_net_msg.player_type == 3 {
-            for mut handle in &mut display_turn.iter_mut() {
-                *handle = asset_server.load("spec.png");
-            }
-        } else {
+        } else if board.player_turn == 2 {
             for mut handle in &mut display_turn.iter_mut() {
                 *handle = asset_server.load("yellow_circle.png");
+            }
+        }
+        if send_net_msg.player_type == 3 {
+            for mut handle in &mut display_turn.iter_mut() {
+                *handle = asset_server.load("spec.png");
             }
         }
     } else {
@@ -544,13 +542,15 @@ fn update_text(
             for mut text in &mut text {
                 text.sections[0].value = "you win!!".to_string();
             }
-        } else if send_net_msg.player_type == 3 {
-            for mut text in &mut text {
-                text.sections[0].value = "game over".to_string();
-            }
         } else {
             for mut text in &mut text {
                 text.sections[0].value = "lol loser".to_string();
+            }
+        }
+
+        if send_net_msg.player_type == 3 {
+            for mut text in &mut text {
+                text.sections[0].value = "game over".to_string();
             }
         }
 

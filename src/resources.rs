@@ -1,11 +1,7 @@
-use bevy::{
-    prelude::{error, info, Resource},
-    time::Time,
-};
+use bevy::prelude::{error, info, Resource};
 use futures::channel::mpsc::{Receiver, Sender};
 use nostr_sdk::{
-    prelude::kind, secp256k1::XOnlyPublicKey, serde_json, ClientMessage, Event, EventBuilder, Keys,
-    Kind, Tag, Timestamp,
+    secp256k1::XOnlyPublicKey, serde_json, ClientMessage, EventBuilder, Keys, Kind, Tag, Timestamp,
 };
 
 use serde::{Deserialize, Serialize};

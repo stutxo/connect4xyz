@@ -1,20 +1,10 @@
-use std::sync::{Arc, Mutex};
-
-use nanoid::nanoid;
-
-use wasm_bindgen::JsValue;
-use web_sys::{window, History};
-
 use bevy::prelude::*;
 use futures::StreamExt;
-use nostr_sdk::{
-    serde_json, Client, ClientMessage, EventBuilder, Filter, RelayPoolNotification, Tag, Timestamp,
-};
+use nostr_sdk::{serde_json, Client, ClientMessage, Filter, RelayPoolNotification, Tag};
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
     components::{CoinMove, ReplayButton},
-    gui_plugin::check_player_connection_and_hide_button,
     messages::{NetworkMessage, Players},
     resources::{Board, NetworkStuff, PlayerMove, SendNetMsg},
     AppState,
