@@ -52,15 +52,18 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
     spawn_local(async move {
         let client = Client::new(&send_net_msg_clone.nostr_keys);
 
+        // #[cfg(target_arch = "wasm32")]
+        // client.add_relay("wss://relay.damus.io").await.unwrap();
+
+        // #[cfg(target_arch = "wasm32")]
+        // client
+        //     .add_relay("wss://strfry.nostr.lighting")
+        //     .await
+        //     .unwrap();
+
         #[cfg(target_arch = "wasm32")]
-        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.add_relay("wss://relay.nostrss.re").await.unwrap();
 
-        // #[cfg(target_arch = "wasm32")]
-        // client.add_relay("wss://relay.snort.social").await.unwrap();
-
-        //doesnt support something
-        // #[cfg(target_arch = "wasm32")]
-        // client.add_relay("wss://nostr.lu.ke").await.unwrap();
         client.connect().await;
 
         let client_clone = client.clone();
@@ -77,7 +80,20 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
 
         client
             .handle_notifications(|notification| async {
-                if let RelayPoolNotification::Event(_url, event) = notification {
+                if let RelayPoolNotification::Event(url, event) = notification {
+                    info!("received event {:?}", url);
+                    if event.tags.contains(&Tag::Hashtag("new_game".to_string()))
+                        || event.tags.contains(&Tag::Hashtag("join_game".to_string()))
+                    {
+                        let subscription = Filter::new()
+                            .author(event.pubkey.to_string())
+                            .hashtag(tag.clone());
+
+                        info!("sub to {:?}", event.pubkey.to_string());
+
+                        client.subscribe(vec![subscription]).await;
+                    }
+
                     match send_tx.clone().try_send(event.content.clone()) {
                         Ok(()) => {}
                         Err(e) => error!("Error sending message: {} CHANNEL FULL???", e),
@@ -90,6 +106,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
     });
 }
 
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
 fn handle_net_msg(
     mut network_stuff: ResMut<NetworkStuff>,
     mut send_net_msg: ResMut<SendNetMsg>,
@@ -116,14 +133,15 @@ fn handle_net_msg(
                         send_net_msg.clone().join_game();
                     }
                     NetworkMessage::JoinGame(other_player) => {
+                        info!("received join game msg {:?}", send_net_msg.player_type);
                         if send_net_msg.start {
                             return;
                         }
+
                         let players = Players::new(send_net_msg.local_player, other_player);
                         send_net_msg.clone().start_game(players);
                         send_net_msg.start = true;
                         send_net_msg.player_type = 1;
-                        info!("received join game msg {:?}", send_net_msg.player_type);
                     }
                     NetworkMessage::StartGame(players) => {
                         if send_net_msg.start {
@@ -152,6 +170,7 @@ fn handle_net_msg(
 
                     NetworkMessage::Input(new_input) => {
                         info!("received input {:?}", new_input);
+                        info!("player turn {:?}", send_net_msg.player_type);
 
                         let row_pos = board.moves.iter().filter(|m| m.column == new_input).count();
                         if row_pos <= 5 {
@@ -198,6 +217,8 @@ fn handle_net_msg(
                                     })
                                     .insert(CoinMove::new(player_move));
                             }
+
+                            board.player_turn = if board.player_turn == 1 { 2 } else { 1 };
 
                             break;
                         }

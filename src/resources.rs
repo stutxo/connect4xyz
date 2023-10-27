@@ -131,7 +131,7 @@ impl SendNetMsg {
             EventBuilder::new(
                 Kind::Replaceable(11111),
                 serialized_message,
-                &[self.game_tag],
+                &[self.game_tag, Tag::Hashtag("new_game".to_string())],
             )
             .to_event(&self.nostr_keys)
             .unwrap(),
@@ -150,13 +150,14 @@ impl SendNetMsg {
         let serialized_message = serde_json::to_string(&msg).unwrap();
 
         //nip40 Expiration Timestamp https://github.com/nostr-protocol/nips/blob/master/40.md
-        let expire = Tag::Expiration(Timestamp::now() + 3_i64);
+
+        let expire = Tag::Expiration(Timestamp::now() + 1_i64);
 
         let nostr_msg = ClientMessage::new_event(
             EventBuilder::new(
                 Kind::Ephemeral(21000),
                 serialized_message,
-                &[self.game_tag, expire],
+                &[self.game_tag, expire, Tag::Hashtag("join_game".to_string())],
             )
             .to_event(&self.nostr_keys)
             .unwrap(),

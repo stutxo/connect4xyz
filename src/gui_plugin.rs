@@ -32,8 +32,7 @@ impl Plugin for Connect4GuiPlugin {
             .add_systems(OnEnter(AppState::InGame), setup_game)
             .add_systems(
                 Update,
-                (place, move_coin.after(place), update_text.after(move_coin))
-                    .run_if(in_state(AppState::InGame)),
+                (place, move_coin, update_text).run_if(in_state(AppState::InGame)),
             );
     }
 }
@@ -276,7 +275,7 @@ fn place(
     mut board: ResMut<Board>,
     coin_query: Query<Entity, With<CoinMove>>,
     mut replay_button: Query<(&mut ReplayButton, &Transform, &mut Visibility), Without<CoinSlot>>,
-    mut send_net_msg: ResMut<SendNetMsg>,
+    send_net_msg: ResMut<SendNetMsg>,
 ) {
     let (camera, camera_transform) = camera_query.single();
 
@@ -434,7 +433,7 @@ fn place(
                             })
                             .insert(CoinMove::new(player_move));
                     }
-
+                    board.player_turn = if board.player_turn == 1 { 2 } else { 1 };
                     break;
                 }
             }
@@ -474,7 +473,7 @@ fn move_coin(
 
                     current.y = target.y;
                     board.in_progress = false;
-                    board.player_turn = if board.player_turn == 1 { 2 } else { 1 };
+
                     coin.reached_target = true;
                 }
 
@@ -508,7 +507,7 @@ fn update_text(
         }
     } else if send_net_msg.player_type == 3 {
         for mut text in &mut text {
-            text.sections[0].value = "spectating(doesnt work yet)".to_string();
+            text.sections[0].value = "spectating".to_string();
         }
     } else if board.player_turn == send_net_msg.player_type {
         for mut text in &mut text {
@@ -525,14 +524,14 @@ fn update_text(
             for mut handle in &mut display_turn.iter_mut() {
                 *handle = asset_server.load("red_circle.png");
             }
+        } else if send_net_msg.player_type == 3 {
+            for mut handle in &mut display_turn.iter_mut() {
+                *handle = asset_server.load("spec.png");
+            }
         } else {
             for mut handle in &mut display_turn.iter_mut() {
                 *handle = asset_server.load("yellow_circle.png");
             }
-        }
-    } else if send_net_msg.player_type == 3 {
-        for mut handle in &mut display_turn.iter_mut() {
-            *handle = asset_server.load("spec.png");
         }
     } else {
         for mut handle in &mut display_turn.iter_mut() {
@@ -540,30 +539,27 @@ fn update_text(
         }
     }
     if board.winner.is_some() {
-        if send_net_msg.start {
-            if board.winner == send_net_msg.player_type.into() {
-                for mut text in &mut text {
-                    text.sections[0].value = "you win!!".to_string();
-                }
-            } else {
-                for mut text in &mut text {
-                    text.sections[0].value = "lol loser".to_string();
-                }
+        if board.winner == send_net_msg.player_type.into() {
+            for mut text in &mut text {
+                text.sections[0].value = "you win!!".to_string();
             }
-        } else {
+        } else if send_net_msg.player_type == 3 {
             for mut text in &mut text {
                 text.sections[0].value = "game over".to_string();
             }
+        } else {
+            for mut text in &mut text {
+                text.sections[0].value = "lol loser".to_string();
+            }
         }
-        if send_net_msg.start {
-            if send_net_msg.player_type == 1 {
-                for mut handle in &mut display_turn.iter_mut() {
-                    *handle = asset_server.load("red_circle.png");
-                }
-            } else {
-                for mut handle in &mut display_turn.iter_mut() {
-                    *handle = asset_server.load("yellow_circle.png");
-                }
+
+        if send_net_msg.player_type == 1 {
+            for mut handle in &mut display_turn.iter_mut() {
+                *handle = asset_server.load("red_circle.png");
+            }
+        } else if send_net_msg.player_type == 2 {
+            for mut handle in &mut display_turn.iter_mut() {
+                *handle = asset_server.load("yellow_circle.png");
             }
         } else {
             for mut handle in &mut display_turn.iter_mut() {
