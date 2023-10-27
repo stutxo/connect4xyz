@@ -55,6 +55,24 @@ fn setup(
         ..Default::default()
     });
 
+    let text = Text::from_sections([TextSection::new(
+        "connect4.xyz",
+        TextStyle {
+            color: Color::BLACK,
+            font_size: 30.0,
+            ..Default::default()
+        },
+    )]);
+
+    commands.spawn(Text2dBundle {
+        text: text.with_alignment(TextAlignment::Center),
+        transform: Transform {
+            translation: Vec3::new(0., 300.0, 1.0),
+            ..default()
+        },
+        ..Default::default()
+    });
+
     #[cfg(target_arch = "wasm32")]
     if is_game_id_present() {
         send_net_msg.created_game = false;
@@ -77,7 +95,7 @@ fn setup_menu(mut commands: Commands) {
         .spawn(NodeBundle {
             style: Style {
                 width: Val::Percent(100.),
-                height: Val::Percent(100.),
+                height: Val::Percent(45.),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 ..default()
@@ -88,20 +106,21 @@ fn setup_menu(mut commands: Commands) {
             parent
                 .spawn(ButtonBundle {
                     style: Style {
-                        width: Val::Px(150.),
-                        height: Val::Px(65.),
+                        width: Val::Px(100.),
+                        height: Val::Px(30.),
                         justify_content: JustifyContent::Center,
                         align_items: AlignItems::Center,
                         ..default()
                     },
                     background_color: NORMAL_BUTTON.into(),
+
                     ..default()
                 })
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
                         "Create New Game",
                         TextStyle {
-                            font_size: 15.0,
+                            font_size: 10.0,
                             color: Color::rgb(0.9, 0.9, 0.9),
                             ..default()
                         },
@@ -494,81 +513,36 @@ fn update_text(
     board: Res<Board>,
     send_net_msg: Res<SendNetMsg>,
 ) {
+    // Check for player connection and hide button
     if send_net_msg.start {
         check_player_connection_and_hide_button();
     }
 
-    if send_net_msg.player_type == 0 {
-        if !send_net_msg.start {
-            for mut text in &mut text {
-                text.sections[0].value = "waiting for player to join...".to_string();
-            }
-        }
-    } else if send_net_msg.player_type == 3 {
-        for mut text in &mut text {
-            text.sections[0].value = "spectating".to_string();
-        }
-    } else if board.player_turn == send_net_msg.player_type {
-        for mut text in &mut text {
-            text.sections[0].value = "its your turn!".to_string();
-        }
-    } else {
-        for mut text in &mut text {
-            text.sections[0].value = "player 2's turn...".to_string();
-        }
-    }
-
-    let image_path = match board.player_turn {
-        1 => "red_circle.png",
-        2 => "yellow_circle.png",
-        _ => "",
+    let new_text_value = match board.winner {
+        Some(winner) if winner == send_net_msg.player_type => "you win!!",
+        Some(_) if send_net_msg.player_type == 2 => "lol you lose",
+        Some(_) => "game over",
+        None => match send_net_msg.player_type {
+            0 if !send_net_msg.start => "waiting for player to join...",
+            3 => "spectating",
+            player_type if player_type == board.player_turn => "its your turn!",
+            _ => "player 2's turn...",
+        },
     };
 
-    if send_net_msg.player_type == 1 || send_net_msg.player_type == 2 {
-        for mut handle in &mut display_turn.iter_mut() {
-            *handle = asset_server.load(image_path);
-        }
-    } else if send_net_msg.player_type == 3 {
-        for mut handle in &mut display_turn.iter_mut() {
-            *handle = asset_server.load("spec.png");
-        }
-    } else {
-        for mut handle in &mut display_turn.iter_mut() {
-            *handle = asset_server.load("connecting.png");
-        }
+    for mut txt in &mut text {
+        txt.sections[0].value = new_text_value.to_string();
     }
+
+    let net_image_path = match send_net_msg.player_type {
+        1 => "red_circle.png",
+        2 => "yellow_circle.png",
+        3 => "spec.png",
+        _ => "connecting.png",
+    };
+
     for mut handle in &mut display_turn.iter_mut() {
-        *handle = asset_server.load(image_path);
-    }
-
-    if board.winner.is_some() {
-        if board.winner == Some(send_net_msg.player_type) {
-            for mut text in &mut text {
-                text.sections[0].value = "you win!!".to_string();
-            }
-        } else if send_net_msg.player_type == 3 {
-            for mut text in &mut text {
-                text.sections[0].value = "game over".to_string();
-            }
-        } else {
-            for mut text in &mut text {
-                text.sections[0].value = "lol loser".to_string();
-            }
-        }
-
-        if send_net_msg.player_type == 1 {
-            for mut handle in &mut display_turn.iter_mut() {
-                *handle = asset_server.load("red_circle.png");
-            }
-        } else if send_net_msg.player_type == 2 {
-            for mut handle in &mut display_turn.iter_mut() {
-                *handle = asset_server.load("yellow_circle.png");
-            }
-        } else {
-            for mut handle in &mut display_turn.iter_mut() {
-                *handle = asset_server.load("spec.png");
-            }
-        }
+        *handle = asset_server.load(net_image_path);
     }
 }
 
