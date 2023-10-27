@@ -149,9 +149,11 @@ impl SendNetMsg {
         let msg = NetworkMessage::JoinGame(self.local_player);
         let serialized_message = serde_json::to_string(&msg).unwrap();
 
+        //use nip5 instead?
+        // some relays i have to add nip40 or the message doesnt get cleared from the relay
         //nip40 Expiration Timestamp https://github.com/nostr-protocol/nips/blob/master/40.md
 
-        let expire = Tag::Expiration(Timestamp::now() + 1_i64);
+        let expire = Tag::Expiration(Timestamp::now() + 5_i64);
 
         let nostr_msg = ClientMessage::new_event(
             EventBuilder::new(

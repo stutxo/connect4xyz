@@ -322,7 +322,7 @@ fn place(
         }
     }
 
-    if board.winner.is_some() && send_net_msg.start {
+    if board.winner.is_some() && send_net_msg.player_type != 3 {
         for (_, transform, mut visibility) in replay_button.iter_mut() {
             *visibility = Visibility::Visible;
             if mouse.just_pressed(MouseButton::Left)
@@ -485,7 +485,11 @@ fn move_coin(
 
 fn check_win(board: &mut ResMut<Board>) {
     if has_winning_move(&board.moves) {
-        board.winner = board.player_turn.into();
+        board.winner = if board.player_turn == 1 {
+            Some(2)
+        } else {
+            Some(1)
+        };
     }
 }
 
@@ -539,7 +543,7 @@ fn update_text(
         }
     }
     if board.winner.is_some() {
-        if board.winner != send_net_msg.player_type.into() {
+        if board.winner == Some(send_net_msg.player_type) {
             for mut text in &mut text {
                 text.sections[0].value = "you win!!".to_string();
             }

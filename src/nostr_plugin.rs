@@ -52,14 +52,11 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
     spawn_local(async move {
         let client = Client::new(&send_net_msg_clone.nostr_keys);
 
-        // #[cfg(target_arch = "wasm32")]
-        // client.add_relay("wss://relay.damus.io").await.unwrap();
+        #[cfg(target_arch = "wasm32")]
+        client.add_relay(" wss://relay.wavlake.com").await.unwrap();
 
-        // #[cfg(target_arch = "wasm32")]
-        // client
-        //     .add_relay("wss://strfry.nostr.lighting")
-        //     .await
-        //     .unwrap();
+        #[cfg(target_arch = "wasm32")]
+        client.add_relay("wss://freespeech.casa").await.unwrap();
 
         #[cfg(target_arch = "wasm32")]
         client.add_relay("wss://relay.nostrss.re").await.unwrap();
@@ -170,7 +167,6 @@ fn handle_net_msg(
 
                     NetworkMessage::Input(new_input) => {
                         info!("received input {:?}", new_input);
-                        info!("player turn {:?}", send_net_msg.player_type);
 
                         let row_pos = board.moves.iter().filter(|m| m.column == new_input).count();
                         if row_pos <= 5 {
