@@ -129,7 +129,7 @@ impl SendNetMsg {
             EventBuilder::new(
                 Kind::Replaceable(11111),
                 serialized_message,
-                &[self.game_tag, Tag::Hashtag("new_game".to_string())],
+                &[self.game_tag],
             )
             .to_event(&self.nostr_keys)
             .unwrap(),
@@ -198,7 +198,7 @@ impl SendNetMsg {
         let serialized_message = serde_json::to_string(&msg).unwrap();
 
         let nostr_msg = ClientMessage::new_event(
-            EventBuilder::new(Kind::Regular(44444), serialized_message, &[self.game_tag])
+            EventBuilder::new_text_note(serialized_message, &[self.game_tag])
                 .to_event(&self.nostr_keys)
                 .unwrap(),
         );
@@ -216,7 +216,7 @@ impl SendNetMsg {
         let serialized_message = serde_json::to_string(&msg).unwrap();
 
         let nostr_msg = ClientMessage::new_event(
-            EventBuilder::new_text_note(serialized_message, &[self.game_tag])
+            EventBuilder::new(Kind::Regular(4444), serialized_message, &[self.game_tag])
                 .to_event(&self.nostr_keys)
                 .unwrap(),
         );

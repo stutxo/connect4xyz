@@ -9,7 +9,6 @@
     <link data-trunk rel="rust" data-wasm-opt="z" />
 
     <link data-trunk rel="icon" href="web_assets/favicon.ico">
-
     <link data-trunk rel="copy-file" href="web_assets/manifest.json" />
     <link data-trunk rel="copy-file" href="./CNAME" />
     <link data-trunk rel="copy-dir" href="./assets/" />
@@ -24,23 +23,41 @@
             overflow: hidden;
         }
 
-        #copyButton {
+        h1 {
+            text-align: center;
             position: absolute;
-            cursor: pointer;
-            touch-action: manipulation;
-            top: 15%;
+            top: 1%;
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+
+        #urlContainer {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: absolute;
+            top: 13%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+
+        #url {
+            margin-bottom: 10px;
         }
     </style>
 </head>
 
 <body>
 
-    <h1 style="position: absolute; top: 1%; left: 50%; transform: translate(-50%, -50%); text-align:center;">
-        connect4.xyz</h1>
+    <h1>connect4.xyz</h1>
 
-    <button id="copyButton" onclick="copyToClipboard()">Share this URL to play 📋 <span id="url"></span></button>
+    <div id="urlContainer">
+        <span id="url"></span>
+        <button id="copyButton" onclick="copyToClipboard()"> Share this URL to play 📋 </button>
+    </div>
 
 
     <script>
@@ -51,7 +68,7 @@
             document.getElementById('url').textContent = currentUrl;
 
             if (locationPath && locationPath !== "/") {
-                document.getElementById('copyButton').style.display = 'block';
+                document.getElementById('urlContainer').style.display = 'flex';
             } else {
                 hideCopyButton();
             }
@@ -68,7 +85,7 @@
         }
 
         function hideCopyButton() {
-            document.getElementById('copyButton').style.display = 'none';
+            document.getElementById('urlContainer').style.display = 'none';
         }
 
         window.addEventListener('urlChanged', function () {
@@ -79,6 +96,5 @@
     </script>
 
 </body>
-
 
 </html>
