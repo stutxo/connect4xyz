@@ -23,15 +23,6 @@
             overflow: hidden;
         }
 
-        h1 {
-            text-align: center;
-            position: absolute;
-            top: 1%;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10;
-        }
-
         #urlContainer {
             display: flex;
             flex-direction: column;
@@ -80,9 +71,7 @@
 
 <body>
 
-    <button id="homeButton">🏠 Home</button>
-
-    <h1>connect4.xyz</h1>
+    <button id="homeButton">🏠 connect4.xyz</button>
 
     <div id="urlContainer">
         <span id="url"></span>
@@ -92,8 +81,9 @@
 
     <script>
         document.getElementById('homeButton').addEventListener('click', function () {
-            window.location.href = 'https://connect4.xyz';
+            window.location.href = window.location.origin;
         });
+
 
 
         function shouldDisplayButton() {

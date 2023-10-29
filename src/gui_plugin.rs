@@ -22,11 +22,10 @@ impl Plugin for Connect4GuiPlugin {
     fn build(&self, app: &mut App) {
         app.add_state::<AppState>()
             .insert_resource(Board::new())
-            .add_systems(Startup, setup)
+            .add_systems(Startup, (setup, setup_game))
             .add_systems(OnEnter(AppState::Menu), setup_menu)
             .add_systems(Update, menu.run_if(in_state(AppState::Menu)))
             .add_systems(OnExit(AppState::Menu), cleanup_menu)
-            .add_systems(OnEnter(AppState::InGame), setup_game)
             .add_systems(
                 Update,
                 (place, move_coin, update_text).run_if(in_state(AppState::InGame)),
@@ -77,7 +76,7 @@ fn setup_menu(mut commands: Commands) {
         .spawn(NodeBundle {
             style: Style {
                 width: Val::Percent(100.),
-                height: Val::Percent(45.),
+                height: Val::Percent(50.),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 ..default()
@@ -211,7 +210,7 @@ fn setup_game(mut commands: Commands, asset_server: Res<AssetServer>) {
     }
 
     let game_text = Text::from_sections([TextSection::new(
-        "waiting for player to join...",
+        String::new(),
         TextStyle {
             color: Color::BLACK,
             font_size: 18.0,
@@ -225,7 +224,7 @@ fn setup_game(mut commands: Commands, asset_server: Res<AssetServer>) {
                 custom_size: Some(Vec2::new(20.0, 20.0)),
                 ..default()
             },
-            texture: asset_server.load("red_circle.png"),
+
             transform: Transform::from_xyz(0.0, 180.0, 1.0),
             ..default()
         })
