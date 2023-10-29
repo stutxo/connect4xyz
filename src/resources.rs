@@ -14,6 +14,7 @@ pub struct Board {
     pub player_turn: usize,
     pub winner: Option<usize>,
     pub in_progress: bool,
+    pub draw: bool,
 }
 
 impl Board {
@@ -23,6 +24,7 @@ impl Board {
             player_turn: 1,
             winner: None,
             in_progress: false,
+            draw: false,
         }
     }
 }
@@ -196,7 +198,7 @@ impl SendNetMsg {
         let serialized_message = serde_json::to_string(&msg).unwrap();
 
         let nostr_msg = ClientMessage::new_event(
-            EventBuilder::new_text_note(serialized_message, &[self.game_tag])
+            EventBuilder::new(Kind::Regular(44444), serialized_message, &[self.game_tag])
                 .to_event(&self.nostr_keys)
                 .unwrap(),
         );

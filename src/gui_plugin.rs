@@ -211,7 +211,7 @@ fn setup_game(mut commands: Commands, asset_server: Res<AssetServer>) {
     }
 
     let game_text = Text::from_sections([TextSection::new(
-        String::new(),
+        "waiting for player to join...",
         TextStyle {
             color: Color::BLACK,
             font_size: 18.0,
@@ -317,7 +317,7 @@ fn place(
         }
     }
 
-    if board.winner.is_some() && send_net_msg.player_type != 3 {
+    if (board.winner.is_some() || board.draw) && send_net_msg.player_type != 3 {
         for (_, transform, mut visibility) in replay_button.iter_mut() {
             *visibility = Visibility::Visible;
             if mouse.just_pressed(MouseButton::Left)
@@ -429,6 +429,7 @@ fn place(
                             .insert(CoinMove::new(player_move));
                     }
                     board.player_turn = if board.player_turn == 1 { 2 } else { 1 };
+
                     break;
                 }
             }
@@ -465,6 +466,9 @@ fn move_coin(
                     board.in_progress = true;
                 } else if !coin.reached_target {
                     check_win(&mut board);
+                    if board.winner.is_none() && is_draw(&board) {
+                        board.draw = true;
+                    }
 
                     current.y = target.y;
                     board.in_progress = false;
@@ -488,6 +492,10 @@ fn check_win(board: &mut ResMut<Board>) {
     }
 }
 
+fn is_draw(board: &Board) -> bool {
+    board.moves.len() == 42
+}
+
 fn update_text(
     mut display_turn: Query<&mut Handle<Image>, With<DisplayTurn>>,
     asset_server: Res<AssetServer>,
@@ -495,36 +503,65 @@ fn update_text(
     board: Res<Board>,
     send_net_msg: Res<SendNetMsg>,
 ) {
-    // Check for player connection and hide button
     if send_net_msg.start {
         check_player_connection_and_hide_button();
     }
 
-    let new_text_value = match board.winner {
-        Some(winner) if winner == send_net_msg.player_type => "you win!!",
-        Some(_) if send_net_msg.player_type == 2 => "lol you lose",
-        Some(_) => "game over",
-        None => match send_net_msg.player_type {
-            0 if !send_net_msg.start => "waiting for player to join...",
-            3 => "spectating",
-            player_type if player_type == board.player_turn => "its your turn!",
-            _ => "player 2's turn...",
-        },
-    };
+    let new_image: Option<&str>;
+    let mut new_text_value: &str;
 
-    for mut txt in &mut text {
-        txt.sections[0].value = new_text_value.to_string();
+    if board.winner.is_some() {
+        if board.winner == Some(send_net_msg.player_type) {
+            new_text_value = "You win!!";
+        } else {
+            new_text_value = "You lose!!";
+        }
+
+        if send_net_msg.player_type == 3 {
+            new_text_value = "Game Over!!";
+            new_image = match board.winner {
+                Some(1) => Some("red_circle.png"),
+                _ => Some("yellow_circle.png"),
+            };
+        } else {
+            new_image = match send_net_msg.player_type {
+                1 => Some("red_circle.png"),
+                2 => Some("yellow_circle.png"),
+                _ => None,
+            };
+        }
+    } else if board.draw {
+        new_text_value = "Its a Draw!!";
+        new_image = None;
+    } else if send_net_msg.player_type == 0 {
+        new_text_value = "waiting for player to join...";
+        new_image = None;
+    } else {
+        new_image = match board.player_turn {
+            1 => Some("red_circle.png"),
+            2 => Some("yellow_circle.png"),
+            _ => None,
+        };
+
+        new_text_value = match send_net_msg.player_type {
+            3 => "Spectating",
+            _ if board.player_turn == send_net_msg.player_type => "Your Turn",
+            _ => "Opponent's Turn...",
+        };
     }
 
-    let net_image_path = match send_net_msg.player_type {
-        1 => "red_circle.png",
-        2 => "yellow_circle.png",
-        3 => "spec.png",
-        _ => "connecting.png",
-    };
+    if let Some(image) = new_image {
+        for mut handle in display_turn.iter_mut() {
+            if *handle != asset_server.get_handle(image) {
+                *handle = asset_server.load(image);
+            }
+        }
+    }
 
-    for mut handle in &mut display_turn.iter_mut() {
-        *handle = asset_server.load(net_image_path);
+    for mut txt in text.iter_mut() {
+        if txt.sections[0].value != new_text_value {
+            txt.sections[0].value = new_text_value.to_string();
+        }
     }
 }
 

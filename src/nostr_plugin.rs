@@ -43,9 +43,6 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
         let client = Client::new(&send_net_msg_clone.nostr_keys);
 
         #[cfg(target_arch = "wasm32")]
-        client.add_relay(" wss://relay.wavlake.com").await.unwrap();
-
-        #[cfg(target_arch = "wasm32")]
         client.add_relay("wss://freespeech.casa").await.unwrap();
 
         #[cfg(target_arch = "wasm32")]
@@ -70,7 +67,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
                 if let RelayPoolNotification::Event(_url, event) = notification {
                     match serde_json::from_str::<NetworkMessage>(&event.content) {
                         Ok(NetworkMessage::StartGame(players)) => {
-                            let subscription = Filter::new()
+                            let new_subscription = Filter::new()
                                 .authors(vec![
                                     players.player1.to_string(),
                                     players.player2.to_string(),
@@ -79,7 +76,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
 
                             info!("sub to {:?}", players);
 
-                            client.subscribe(vec![subscription]).await;
+                            client.subscribe(vec![new_subscription]).await;
                         }
                         Ok(_) => {}
                         Err(_) => {}
