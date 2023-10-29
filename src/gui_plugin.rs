@@ -366,9 +366,13 @@ fn place(
                     for mut handle in &mut update_sprite.iter_mut() {
                         *handle = asset_server.load("red_circle.png");
                     }
-                } else {
+                } else if send_net_msg.player_type == 2 {
                     for mut handle in &mut update_sprite.iter_mut() {
                         *handle = asset_server.load("yellow_circle.png");
+                    }
+                } else {
+                    for mut handle in &mut update_sprite.iter_mut() {
+                        *handle = asset_server.load("white_circle.png");
                     }
                 }
             } else if coin.r == 6 {
@@ -545,8 +549,8 @@ fn update_text(
 
         new_text_value = match send_net_msg.player_type {
             3 => "Spectating",
-            _ if board.player_turn == send_net_msg.player_type => "Your Turn",
-            _ => "Opponent's Turn...",
+            _ if board.player_turn == send_net_msg.player_type => "Its Your Turn",
+            _ => "Waiting for Player 2...",
         };
     }
 
