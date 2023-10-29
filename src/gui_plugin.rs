@@ -550,7 +550,7 @@ fn update_text(
         new_text_value = match send_net_msg.player_type {
             3 => "Spectating",
             _ if board.player_turn == send_net_msg.player_type => "Its your Turn",
-            _ => "Waiting for Player 2...",
+            _ => "Player 2's turn...",
         };
     }
 
