@@ -534,10 +534,10 @@ fn update_text(
             };
         }
     } else if board.draw {
-        new_text_value = "Its a Draw!!";
+        new_text_value = "Its a draw!!";
         new_image = None;
     } else if send_net_msg.player_type == 0 {
-        new_text_value = "waiting for player to join...";
+        new_text_value = "Waiting for player to join...";
         new_image = None;
     } else {
         new_image = match board.player_turn {
@@ -548,7 +548,7 @@ fn update_text(
 
         new_text_value = match send_net_msg.player_type {
             3 => "Spectating",
-            _ if board.player_turn == send_net_msg.player_type => "Its your Turn",
+            _ if board.player_turn == send_net_msg.player_type => "Its your turn",
             _ => "Player 2's turn...",
         };
     }

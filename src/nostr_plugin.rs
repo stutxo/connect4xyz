@@ -111,13 +111,14 @@ fn handle_net_msg(
 
     if let Some(ref mut receive_rx) = network_stuff.read {
         while let Ok(Some(message)) = receive_rx.try_next() {
+            info!("received message: {:?}", message);
             match serde_json::from_str::<NetworkMessage>(&message) {
                 Ok(network_message) => match network_message {
                     NetworkMessage::NewGame => {
                         if send_net_msg.start {
                             return;
                         }
-                        info!("received new game msg ");
+                        info!("received new game msg");
                         send_net_msg.clone().join_game();
                     }
                     NetworkMessage::JoinGame(other_player) => {
@@ -131,9 +132,9 @@ fn handle_net_msg(
                         send_net_msg.clone().start_game(players);
 
                         send_net_msg.player_type = 1;
-                        info!("joined as player 1");
                     }
                     NetworkMessage::StartGame(players) => {
+                        info!("received start game msg");
                         if send_net_msg.start {
                             return;
                         }
@@ -149,7 +150,6 @@ fn handle_net_msg(
 
                         send_net_msg.start = true;
                         send_net_msg.player_type = 2;
-                        info!("joined as player 2");
                     }
 
                     NetworkMessage::Input(new_input) => {
@@ -157,8 +157,6 @@ fn handle_net_msg(
                         if row_pos <= 5 {
                             let player_move =
                                 PlayerMove::new(board.player_turn, new_input, row_pos);
-
-                            info!("receiv player move {:?}", player_move);
 
                             board.moves.push(player_move);
 
