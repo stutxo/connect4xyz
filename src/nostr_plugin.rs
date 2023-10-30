@@ -54,6 +54,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
 
         spawn_local(async move {
             while let Some(msg) = nostr_msg_rx.next().await {
+                info!("sending game event: {:?}", msg);
                 client_clone.clone().send_msg(msg).await.unwrap();
             }
         });
@@ -81,6 +82,8 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
                         Ok(_) => {}
                         Err(_) => {}
                     }
+
+                    info!("received game event: {:?}", event);
 
                     match send_tx.clone().try_send(event.content.clone()) {
                         Ok(()) => {}
@@ -111,18 +114,16 @@ fn handle_net_msg(
 
     if let Some(ref mut receive_rx) = network_stuff.read {
         while let Ok(Some(message)) = receive_rx.try_next() {
-            info!("received message: {:?}", message);
             match serde_json::from_str::<NetworkMessage>(&message) {
                 Ok(network_message) => match network_message {
                     NetworkMessage::NewGame => {
                         if send_net_msg.start {
                             return;
                         }
-                        info!("received new game msg");
+
                         send_net_msg.clone().join_game();
                     }
                     NetworkMessage::JoinGame(other_player) => {
-                        info!("received join game msg {:?}", send_net_msg.player_type);
                         if send_net_msg.start {
                             return;
                         }
@@ -134,7 +135,6 @@ fn handle_net_msg(
                         send_net_msg.player_type = 1;
                     }
                     NetworkMessage::StartGame(players) => {
-                        info!("received start game msg");
                         if send_net_msg.start {
                             return;
                         }
@@ -143,7 +143,7 @@ fn handle_net_msg(
                             && send_net_msg.local_player != players.player2
                         {
                             send_net_msg.player_type = 3;
-                            info!("joined spectate mode");
+
                             send_net_msg.start = true;
                             return;
                         }

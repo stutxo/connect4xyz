@@ -1,4 +1,4 @@
-use bevy::prelude::{error, info, Resource};
+use bevy::prelude::{error, Resource};
 use futures::channel::mpsc::{Receiver, Sender};
 use nostr_sdk::{
     secp256k1::XOnlyPublicKey, serde_json, ClientMessage, EventBuilder, Keys, Kind, Tag, Timestamp,
@@ -135,8 +135,6 @@ impl SendNetMsg {
             .unwrap(),
         );
 
-        info!("sending new game msg {:?}", nostr_msg);
-
         match self.send.clone().unwrap().try_send(nostr_msg) {
             Ok(()) => {}
             Err(e) => error!("Error sending new_game message: {}", e),
@@ -163,8 +161,6 @@ impl SendNetMsg {
             .unwrap(),
         );
 
-        info!("sending join game msg {:?}", nostr_msg);
-
         match self.send.clone().unwrap().try_send(nostr_msg) {
             Ok(()) => {}
             Err(e) => error!("Error sending join_game message: {}", e),
@@ -185,8 +181,6 @@ impl SendNetMsg {
             .unwrap(),
         );
 
-        info!("sending start game msg {:?}", nostr_msg);
-
         match self.send.clone().unwrap().try_send(nostr_msg) {
             Ok(()) => {}
             Err(e) => error!("Error sending start_game message: {}", e),
@@ -203,8 +197,6 @@ impl SendNetMsg {
                 .unwrap(),
         );
 
-        info!("sending input game msg {:?}", nostr_msg);
-
         match self.send.clone().unwrap().try_send(nostr_msg) {
             Ok(()) => {}
             Err(e) => error!("Error sending send_input message: {}", e),
@@ -220,8 +212,6 @@ impl SendNetMsg {
                 .to_event(&self.nostr_keys)
                 .unwrap(),
         );
-
-        info!("sending replay game msg {:?}", nostr_msg);
 
         match self.send.clone().unwrap().try_send(nostr_msg) {
             Ok(()) => {}
