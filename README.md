@@ -2,7 +2,7 @@
 
 A game inspired by chess over nostr - [jesterui](https://github.com/jesterui/jesterui).
 
-Play Connect4 over `nostr`.
+Play Connect4 over `nostr`. https://connect4.xyz
 
 ## Nostr Events Used
 
