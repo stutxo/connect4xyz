@@ -10,6 +10,9 @@
     
     
 
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+
     <style>
         body,
         html {
@@ -30,27 +33,20 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
-
-            /* Additions start here */
             background-color: rgba(255, 255, 255, 0.8);
-            /* Semi-transparent white */
             padding: 20px;
-            /* Add padding */
             border-radius: 10px;
-            /* Rounded corners */
             box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.2);
-            /* Subtle shadow for elevation */
         }
-
 
         #url {
             margin-bottom: 10px;
         }
 
-        #homeButton {
+        #homeButton,
+        #githubButton {
             position: absolute;
             top: 10px;
-            left: 10px;
             padding: 5px 10px;
             font-size: 16px;
             border-radius: 5px;
@@ -60,8 +56,14 @@
             box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.2);
         }
 
-        #homeButton:hover {
+        #homeButton:hover,
+        #githubButton:hover {
             background-color: rgba(255, 255, 255, 0.9);
+        }
+
+        #githubButton {
+            left: 150px;
+            /* Adjust as needed based on the size of your homeButton */
         }
     </style>
 
@@ -71,19 +73,21 @@
 <body>
 
     <button id="homeButton">🏠 connect4.xyz</button>
+    <button id="githubButton" onclick="goToGitHub()"><i class="fab fa-github"></i></button>
 
     <div id="urlContainer">
         <span id="url"></span>
         <button id="copyButton" onclick="copyToClipboard()"> Share this URL to play 📋 </button>
     </div>
 
-
     <script>
         document.getElementById('homeButton').addEventListener('click', function () {
             window.location.href = window.location.origin;
         });
 
-
+        function goToGitHub() {
+            window.location.href = 'https://github.com/stum0/connect4xyz';
+        }
 
         function shouldDisplayButton() {
             const currentUrl = window.location.href;
