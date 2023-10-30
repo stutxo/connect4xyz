@@ -82,6 +82,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
 
                             client.subscribe(vec![new_subscription]).await;
                         }
+
                         Ok(_) => {}
                         Err(_) => {}
                     }

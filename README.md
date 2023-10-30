@@ -1,49 +1,50 @@
 # Connect4.xyz
 
-A game inspired by [jesterui](https://github.com/jesterui/jesterui). Play Connect4 over `nostr`.
+A game inspired by chess over nostr - [jesterui](https://github.com/jesterui/jesterui).
 
-## Nostr Events
+Play Connect4 over `nostr`.
+
+## Nostr Events Used
 
 ### 1. New Game
 
-When a new game is created from the home page, a replaceable event with the game id as the tag is sent. The game ID can be retrieved from the URL, which can be shared with the opponent.
+When a new game is initiated from the home page, a replaceable event tagged with the game ID is sent. This game ID, which can be extracted from the URL, can be shared with the opponent.
 
 **Kind**: `Replaceable(1111)`
 
 ### 2. Join Game
 
-Upon an opponent joining the game, a `join game` ephemeral message is sent. This message isn't stored on the server and is transmitted to the other connected player. The message includes the game id and the public key of the joining player.
+When an opponent joins the game, a `join game` ephemeral message is dispatched. This message isn't stored on the server and is only sent to the other connected player. It contains the game ID and the public key of the player who just joined.
 
 **Kind**: `Ephemeral`
 
 ### 3. Game Started
 
-When the first player recieves the `join game` message, a `start game` replaceable message is dispatched, replacing the new game message.
+Once the first player receives the `join game` message, a replaceable `start game` message is sent out, replacing the initial game message with a message containing both players' public keys.
 
+Player 2 then resubscribes exclusively to Player 1's and its own public key and sends its own `start game` message. This ensures Player 1 can subscribe to Player 2's public key.
 
-player 2 ressubscribes to player 1's public key only and then sends its own `start game` message so that player 1 can subscribe to player 2's public key.
-
-
-If a does not match the public keys in the start game message, then they are set to spectator mode.
+If a player's public key doesn't match those in the `start game` message, they are designated as spectators.
 
 **Kind**: `Replaceable(1111)`
 
 ### 4. Send Input
 
-send game inputs
+To relay game inputs.
 
 **Kind**: `Regular(4444)`
 
 ### 5. Send Replay
 
-for sending replay game message
+For dispatching replay game messages.
 
 **Kind**: `Regular(4444)`
 
+## Building and Running Locally
 
+Utilize [trunk](https://trunkrs.dev/) to build and serve locally.
 
-build locally using trunk. https://trunkrs.dev/
-
+### Serve (Run this to open in a local browser)
 
 ```
 set LLVM_PATH $(brew --prefix llvm)
