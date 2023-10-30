@@ -192,7 +192,7 @@ impl SendNetMsg {
         let serialized_message = serde_json::to_string(&msg).unwrap();
 
         let nostr_msg = ClientMessage::new_event(
-            EventBuilder::new_text_note(serialized_message, &[self.game_tag])
+            EventBuilder::new(Kind::Regular(4444), serialized_message, &[self.game_tag])
                 .to_event(&self.nostr_keys)
                 .unwrap(),
         );

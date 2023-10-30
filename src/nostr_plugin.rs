@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use futures::StreamExt;
-use nostr_sdk::{serde_json, Client, ClientMessage, Filter, RelayPoolNotification, Tag};
+use nostr_sdk::{serde_json, Client, ClientMessage, Filter, Kind, RelayPoolNotification, Tag};
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
@@ -59,7 +59,9 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
             }
         });
 
-        let subscription = Filter::new().hashtag(tag.clone());
+        let subscription = Filter::new()
+            .kinds(vec![Kind::Replaceable(11111), Kind::Ephemeral(21000)])
+            .hashtag(tag.clone());
 
         client.subscribe(vec![subscription]).await;
 
@@ -73,6 +75,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
                                     players.player1.to_string(),
                                     players.player2.to_string(),
                                 ])
+                                .kind(Kind::Regular(4444))
                                 .hashtag(tag.clone());
 
                             info!("sub to {:?}", players);
@@ -147,6 +150,8 @@ fn handle_net_msg(
                             send_net_msg.start = true;
                             return;
                         }
+
+                        send_net_msg.clone().start_game(players);
 
                         send_net_msg.start = true;
                         send_net_msg.player_type = 2;
