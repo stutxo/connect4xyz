@@ -10,7 +10,7 @@ use crate::{
 use nanoid::nanoid;
 
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
-use web_sys::{window, CustomEvent, History};
+use web_sys::{window, History};
 
 const COIN_SIZE: Vec2 = Vec2::new(40.0, 40.0);
 const COLUMNS: usize = 7;
