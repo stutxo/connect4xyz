@@ -1,4 +1,5 @@
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
+use nostr_sdk::serde_json;
 
 use crate::{
     components::{CoinMove, CoinSlot, DisplayTurn, ReplayButton, TextChanges, TopRow},
@@ -9,7 +10,7 @@ use crate::{
 use nanoid::nanoid;
 
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
-use web_sys::{window, History};
+use web_sys::{window, CustomEvent, History};
 
 const COIN_SIZE: Vec2 = Vec2::new(40.0, 40.0);
 const COLUMNS: usize = 7;
@@ -268,7 +269,10 @@ fn place(
     mut update_sprite: Query<&mut Handle<Image>, (With<TopRow>, Without<DisplayTurn>)>,
     mut board: ResMut<Board>,
     coin_query: Query<Entity, With<CoinMove>>,
-    mut replay_button: Query<(&mut ReplayButton, &Transform, &mut Visibility), Without<CoinSlot>>,
+    mut end_game_buttons: Query<
+        (&mut ReplayButton, &Transform, &mut Visibility),
+        Without<CoinSlot>,
+    >,
     send_net_msg: ResMut<SendNetMsg>,
 ) {
     let (camera, camera_transform) = camera_query.single();
@@ -317,7 +321,21 @@ fn place(
     }
 
     if (board.winner.is_some() || board.draw) && send_net_msg.player_type != 3 {
-        for (_, transform, mut visibility) in replay_button.iter_mut() {
+        if board.winner == Some(send_net_msg.player_type) {
+            let send_board = board.moves.clone();
+            let send_board = serde_json::to_string(&send_board).unwrap();
+
+            let mut event_init = web_sys::CustomEventInit::new();
+
+            event_init.detail(&JsValue::from_str(&send_board));
+
+            let event =
+                web_sys::CustomEvent::new_with_event_init_dict("send_board", &event_init).unwrap();
+
+            web_sys::window().unwrap().dispatch_event(&event).unwrap();
+        }
+
+        for (_, transform, mut visibility) in end_game_buttons.iter_mut() {
             *visibility = Visibility::Visible;
             if mouse.just_pressed(MouseButton::Left)
                 || mouse.just_pressed(MouseButton::Right)
