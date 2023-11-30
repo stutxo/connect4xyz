@@ -44,16 +44,14 @@ For dispatching replay game messages.
 
 Utilize [trunk](https://trunkrs.dev/) to build and serve locally.
 
-### Serve (Run this to open in a local browser)
+### server dev (Run this to open in a local browser)
 
 ```
-set LLVM_PATH $(brew --prefix llvm)
-AR="$LLVM_PATH/bin/llvm-ar" CC="$LLVM_PATH/bin/clang" RUSTFLAGS=--cfg=web_sys_unstable_apis trunk serve --public-url /  --port=1334
+./build.sh dev
 ```
 
-Build
+release
 ```
-set LLVM_PATH $(brew --prefix llvm)
-AR="$LLVM_PATH/bin/llvm-ar" CC="$LLVM_PATH/bin/clang" RUSTFLAGS=--cfg=web_sys_unstable_apis trunk build --release
+./build.sh release
 ```
 
