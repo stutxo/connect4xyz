@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{asset::AssetMetaCheck, prelude::*};
 use gui_plugin::Connect4GuiPlugin;
 use nostr_plugin::NostrPlugin;
 
@@ -10,6 +10,7 @@ mod resources;
 
 fn main() {
     App::new()
+        .insert_resource(AssetMetaCheck::Never)
         .add_plugins((
             DefaultPlugins
                 .set(WindowPlugin {

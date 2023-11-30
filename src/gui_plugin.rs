@@ -1,4 +1,4 @@
-use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
+use bevy::{asset::AssetMetaCheck, core_pipeline::clear_color::ClearColorConfig, prelude::*};
 use nostr_sdk::serde_json;
 
 use crate::{
@@ -352,6 +352,7 @@ fn place(
                             }
                             *visibility = Visibility::Hidden;
                             send_net_msg.clone().send_replay();
+                            hide_copy_board();
                             break;
                         }
                     }
@@ -366,6 +367,7 @@ fn place(
                             }
                             *visibility = Visibility::Hidden;
                             send_net_msg.clone().send_replay();
+                            hide_copy_board();
                             break;
                         }
                     }
@@ -573,9 +575,7 @@ fn update_text(
 
     if let Some(image) = new_image {
         for mut handle in display_turn.iter_mut() {
-            if *handle != asset_server.get_handle(image) {
-                *handle = asset_server.load(image);
-            }
+            *handle = asset_server.load(image);
         }
     }
 
@@ -598,4 +598,14 @@ extern "C" {
 #[wasm_bindgen]
 pub fn check_player_connection_and_hide_button() {
     hideCopyButton();
+}
+
+#[wasm_bindgen]
+extern "C" {
+    fn hideCopyBoardButton();
+}
+
+#[wasm_bindgen]
+pub fn hide_copy_board() {
+    hideCopyBoardButton();
 }
