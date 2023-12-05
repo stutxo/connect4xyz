@@ -7,13 +7,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>connect4.xyz</title>
     <link data-trunk rel="rust" data-wasm-opt="z" />
-
     <link data-trunk rel="icon" href="web_assets/favicon.ico">
     <link data-trunk rel="copy-file" href="web_assets/manifest.json" />
     <link data-trunk rel="copy-file" href="./CNAME" />
     <link data-trunk rel="copy-dir" href="./assets/" />
-
-    <!-- Font Awesome CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" />
 
     <style>
@@ -26,7 +23,8 @@
             overflow: hidden;
         }
 
-        #urlContainer {
+        /* Common container style */
+        .container {
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -40,26 +38,6 @@
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        #ShareContainer {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            position: absolute;
-            bottom: 50%;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10;
-            background-color: rgba(255, 255, 255, 0.8);
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        #url {
-            margin-bottom: 10px;
         }
 
         #homeButton,
@@ -82,7 +60,10 @@
 
         #githubButton {
             left: 150px;
-            /* Adjust as needed based on the size of your homeButton */
+        }
+
+        #loadingText {
+            font-size: 20px;
         }
     </style>
 </head>
@@ -92,17 +73,26 @@
     <button id="homeButton">🏠 connect4.xyz</button>
     <button id="githubButton" onclick="goToGitHub()"><i class="fab fa-github"></i></button>
 
-    <div id="urlContainer">
-        <span id="url"></span>
-        <button id="copyButton" onclick="copyToClipboard()"> Share this URL to play 📋 </button>
+    <div id="NewGameContainer" class="container">
+        <button id="NewGameButton">Create Game 🎲</button>
     </div>
-    <div id="ShareContainer">
-        <button id="copyBoardButton" onclick="copyBoardStateToClipboard()"> Share 📋 </button>
+    <div id="LoadingContainer" class="container">
+        <div id="loadingText">Loading<span class="dots">...</span></div>
+    </div>
+    <div id="UrlContainer" class="container">
+        <span id="url"></span>
+        <button id="copyButton" onclick="copyToClipboard()">Share this URL to play 📋</button>
+    </div>
+    <div id="ShareContainer" class="container">
+        <button id="copyBoardButton" onclick="copyBoardStateToClipboard()">Share result 📋</button>
+        <!-- <button id="copyBoardButton" onclick="copyBoardStateToClipboard()">Replay 🔁</button> -->
     </div>
 
     <script>
         hideCopyBoardButton();
-        shouldDisplayButton();
+        hideNewGameButton();
+        hideShareButton();
+
         let currentBoardState = '';
 
         document.getElementById('homeButton').addEventListener('click', function () {
@@ -114,7 +104,12 @@
         //event listeners
 
         window.addEventListener('urlChanged', () => {
-            shouldDisplayButton();
+            displayShareButton();
+        });
+
+        window.addEventListener('wasmLoaded', () => {
+            showNewGameButton();
+            hideLoading();
         });
 
         window.addEventListener('send_board', (event) => {
@@ -129,23 +124,8 @@
             window.location.href = 'https://github.com/stum0/connect4xyz';
         }
 
-        function shouldDisplayButton() {
-            const currentUrl = window.location.href;
-            const locationPath = window.location.pathname;
-
-            document.getElementById('url').textContent = currentUrl;
-
-            if (locationPath && locationPath !== "/") {
-                document.getElementById('urlContainer').style.display = 'flex';
-            } else {
-                hideCopyButton();
-            }
-        }
 
 
-        function hideCopyButton() {
-            document.getElementById('urlContainer').style.display = 'none';
-        }
 
         function copyBoardStateToClipboard() {
             navigator.clipboard.writeText(currentBoardState)
@@ -217,10 +197,34 @@
         function showCopyBoardButton() {
             document.getElementById('ShareContainer').style.display = 'flex';
         }
-
+        function showNewGameButton() {
+            document.getElementById('NewGameContainer').style.display = 'flex';
+        }
+        function hideCopyButton() {
+            document.getElementById('UrlContainer').style.display = 'none';
+        }
         function hideCopyBoardButton() {
             document.getElementById('ShareContainer').style.display = 'none';
         }
+        function hideNewGameButton() {
+            document.getElementById('NewGameContainer').style.display = 'none';
+        }
+        function hideLoading() {
+            document.getElementById('LoadingContainer').style.display = 'none';
+        }
+        function hideShareButton() {
+            document.getElementById('UrlContainer').style.display = 'none';
+        }
+        function displayShareButton() {
+            const currentUrl = window.location.href;
+            const locationPath = window.location.pathname;
+
+            document.getElementById('url').textContent = currentUrl;
+            document.getElementById('UrlContainer').style.display = 'flex';
+        }
+
+
+
     </script>
 
 </body>

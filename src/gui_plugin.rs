@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use bevy::{asset::AssetMetaCheck, core_pipeline::clear_color::ClearColorConfig, prelude::*};
 use nostr_sdk::serde_json;
 
@@ -17,6 +19,8 @@ const COLUMNS: usize = 7;
 const ROWS: usize = 7;
 const SPACING: f32 = 5.0;
 
+static GREET_CALLED: AtomicBool = AtomicBool::new(false);
+
 pub struct Connect4GuiPlugin;
 
 impl Plugin for Connect4GuiPlugin {
@@ -24,24 +28,16 @@ impl Plugin for Connect4GuiPlugin {
         app.add_state::<AppState>()
             .insert_resource(Board::new())
             .add_systems(Startup, (setup, setup_game))
-            .add_systems(OnEnter(AppState::Menu), setup_menu)
-            .add_systems(Update, menu.run_if(in_state(AppState::Menu)))
-            .add_systems(OnExit(AppState::Menu), cleanup_menu)
+            .add_systems(
+                Update,
+                check_greet_called_system.run_if(in_state(AppState::Menu)),
+            )
             .add_systems(
                 Update,
                 (place, move_coin, update_text).run_if(in_state(AppState::InGame)),
             );
     }
 }
-
-#[derive(Resource)]
-struct MenuData {
-    button_entity: Entity,
-}
-
-const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
-const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
-const PRESSED_BUTTON: Color = Color::rgb(0.20, 0.20, 0.20);
 
 fn setup(
     mut commands: Commands,
@@ -72,98 +68,40 @@ pub fn is_game_id_present() -> bool {
     false
 }
 
-fn setup_menu(mut commands: Commands) {
-    let button_entity = commands
-        .spawn(NodeBundle {
-            style: Style {
-                width: Val::Percent(100.),
-                height: Val::Percent(50.),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            ..default()
-        })
-        .with_children(|parent| {
-            parent
-                .spawn(ButtonBundle {
-                    style: Style {
-                        width: Val::Px(100.),
-                        height: Val::Px(30.),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        ..default()
-                    },
-                    background_color: NORMAL_BUTTON.into(),
+fn check_greet_called_system(mut next_state: ResMut<NextState<AppState>>) {
+    if GREET_CALLED.load(Ordering::SeqCst) {
+        // Perform the action you want to occur after greet() is called
+        info!("greet() was called!");
 
-                    ..default()
-                })
-                .with_children(|parent| {
-                    parent.spawn(TextBundle::from_section(
-                        "Create New Game",
-                        TextStyle {
-                            font_size: 10.0,
-                            color: Color::rgb(0.9, 0.9, 0.9),
-                            ..default()
-                        },
-                    ));
-                });
-        })
-        .id();
-    commands.insert_resource(MenuData { button_entity });
-}
+        let alphabet: [char; 52] = [
+            'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q',
+            'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+            'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y',
+            'Z',
+        ];
 
-fn menu(
-    mut next_state: ResMut<NextState<AppState>>,
-    mut interaction_query: Query<
-        (&Interaction, &mut BackgroundColor),
-        (Changed<Interaction>, With<Button>),
-    >,
-) {
-    for (interaction, mut color) in &mut interaction_query {
-        match *interaction {
-            Interaction::Pressed => {
-                *color = PRESSED_BUTTON.into();
-                let alphabet: [char; 52] = [
-                    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
-                    'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F',
-                    'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
-                    'W', 'X', 'Y', 'Z',
-                ];
+        let game_id = nanoid!(6, &alphabet);
 
-                let game_id = nanoid!(6, &alphabet);
+        let location = web_sys::window().unwrap().location();
 
-                let location = web_sys::window().unwrap().location();
+        let host = location.host().unwrap();
 
-                let host = location.host().unwrap();
+        let protocol = location.protocol().unwrap();
 
-                let protocol = location.protocol().unwrap();
+        let full_url = format!("{protocol}//{host}/{game_id}");
 
-                let full_url = format!("{protocol}//{host}/{game_id}");
+        let history: History = window().unwrap().history().unwrap();
+        history
+            .push_state_with_url(&JsValue::from_str("Create New Game"), "", Some(&full_url))
+            .expect("pushState failed");
 
-                let history: History = window().unwrap().history().unwrap();
-                history
-                    .push_state_with_url(&JsValue::from_str("Create New Game"), "", Some(&full_url))
-                    .expect("pushState failed");
+        let window = web_sys::window().unwrap();
+        let event = web_sys::CustomEvent::new("urlChanged").unwrap();
+        window.dispatch_event(&event).unwrap();
+        next_state.set(AppState::InGame);
 
-                let window = web_sys::window().unwrap();
-                let event = web_sys::CustomEvent::new("urlChanged").unwrap();
-                window.dispatch_event(&event).unwrap();
-
-                next_state.set(AppState::InGame);
-            }
-            Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
-            }
-            Interaction::None => {
-                *color = NORMAL_BUTTON.into();
-            }
-        }
+        GREET_CALLED.store(false, Ordering::SeqCst);
     }
-}
-
-fn cleanup_menu(mut commands: Commands, menu_data: Res<MenuData>) {
-    commands.entity(menu_data.button_entity).despawn_recursive();
 }
 
 fn setup_game(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -255,6 +193,10 @@ fn setup_game(mut commands: Commands, asset_server: Res<AssetServer>) {
         })
         .insert(Visibility::Hidden)
         .insert(ReplayButton);
+
+    let window = web_sys::window().unwrap();
+    let event = web_sys::CustomEvent::new("wasmLoaded").unwrap();
+    window.dispatch_event(&event).unwrap();
 }
 
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
@@ -528,6 +470,8 @@ fn update_text(
 ) {
     if send_net_msg.start {
         check_player_connection_and_hide_button();
+    } else {
+        hide_new_game_button();
     }
 
     let new_image: Option<&str>;
@@ -602,10 +546,26 @@ pub fn check_player_connection_and_hide_button() {
 
 #[wasm_bindgen]
 extern "C" {
+    fn hideNewGameButton();
+}
+
+#[wasm_bindgen]
+pub fn hide_new_game_button() {
+    hideNewGameButton();
+}
+
+#[wasm_bindgen]
+extern "C" {
     fn hideCopyBoardButton();
 }
 
 #[wasm_bindgen]
 pub fn hide_copy_board() {
     hideCopyBoardButton();
+}
+
+#[wasm_bindgen]
+pub fn greet() {
+    info!("Hello");
+    GREET_CALLED.store(true, Ordering::SeqCst);
 }

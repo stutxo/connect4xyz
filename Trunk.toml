@@ -1,3 +1,5 @@
 [build]
+
+pattern_script = "<script type=\"module\">import init, { greet } from '{base}{js}'; init('{base}{wasm}'); document.addEventListener('DOMContentLoaded', () => { const button = document.getElementById('NewGameButton'); button.addEventListener('click', () => { const name = \"egg\"; greet(name); }); });</script>"
 dist = "./docs"
 public_url = "./"
