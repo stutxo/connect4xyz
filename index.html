@@ -70,6 +70,10 @@
 
 <body>
 
+    <div id="LoginContainer" class="container">
+        <button id="NostrLogin">login with nostr (alby)</button>
+        <button id="GuestLogin">login as guest</button>
+    </div>
     <button id="homeButton">🏠 connect4.xyz</button>
     <button id="githubButton" onclick="goToGitHub()"><i class="fab fa-github"></i></button>
 
@@ -77,7 +81,7 @@
         <button id="NewGameButton">Create Game 🎲</button>
     </div>
     <div id="LoadingContainer" class="container">
-        <div id="loadingText">Loading<span class="dots">...</span></div>
+        <div id="loadingText">Loading...</div>
     </div>
     <div id="UrlContainer" class="container">
         <span id="url"></span>
@@ -85,13 +89,10 @@
     </div>
     <div id="ShareContainer" class="container">
         <button id="copyBoardButton" onclick="copyBoardStateToClipboard()">Share result 📋</button>
-        <!-- <button id="copyBoardButton" onclick="copyBoardStateToClipboard()">Replay 🔁</button> -->
     </div>
 
     <script>
-        hideCopyBoardButton();
-        hideNewGameButton();
-        hideShareButton();
+        hideButtons();
 
         let currentBoardState = '';
 
@@ -108,8 +109,13 @@
         });
 
         window.addEventListener('wasmLoaded', () => {
-            showNewGameButton();
             hideLoading();
+            showLoginButton();
+        });
+
+        window.addEventListener('loggedIn', () => {
+            showNewGameButton();
+            hideLoginButton();
         });
 
         window.addEventListener('send_board', (event) => {
@@ -133,7 +139,7 @@
                     const copyButton = document.getElementById('copyBoardButton');
                     copyButton.textContent = 'Copied! 🎉';
                     setTimeout(() => {
-                        copyButton.textContent = 'Share 📋';
+                        copyButton.textContent = 'Share result 📋';
                     }, 3000);
                 })
                 .catch(err => {
@@ -197,23 +203,29 @@
         function showCopyBoardButton() {
             document.getElementById('ShareContainer').style.display = 'flex';
         }
+        function showLoginButton() {
+            document.getElementById('LoginContainer').style.display = 'flex';
+        }
         function showNewGameButton() {
             document.getElementById('NewGameContainer').style.display = 'flex';
         }
-        function hideCopyButton() {
-            document.getElementById('UrlContainer').style.display = 'none';
-        }
-        function hideCopyBoardButton() {
+        function hideButtons() {
+            document.getElementById('LoginContainer').style.display = 'none';
             document.getElementById('ShareContainer').style.display = 'none';
+            document.getElementById('NewGameContainer').style.display = 'none';
+            document.getElementById('UrlContainer').style.display = 'none';
         }
         function hideNewGameButton() {
             document.getElementById('NewGameContainer').style.display = 'none';
         }
+        function hideCopyButton() {
+            document.getElementById('UrlContainer').style.display = 'none';
+        }
         function hideLoading() {
             document.getElementById('LoadingContainer').style.display = 'none';
         }
-        function hideShareButton() {
-            document.getElementById('UrlContainer').style.display = 'none';
+        function hideLoginButton() {
+            document.getElementById('LoginContainer').style.display = 'none';
         }
         function displayShareButton() {
             const currentUrl = window.location.href;

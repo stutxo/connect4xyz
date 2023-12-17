@@ -1,6 +1,11 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use bevy::prelude::*;
 use futures::StreamExt;
-use nostr_sdk::{serde_json, Client, ClientMessage, Filter, Kind, RelayPoolNotification, Tag};
+use nostr_sdk::{
+    serde_json, Client, ClientMessage, Filter, Keys, Kind, RelayPoolNotification, Tag,
+};
+use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
@@ -20,7 +25,7 @@ pub struct NostrPlugin;
 impl Plugin for NostrPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(NetworkStuff::new())
-            .insert_resource(SendNetMsg::new())
+            .insert_resource(SendNetMsg::new(None))
             .add_systems(OnEnter(AppState::InGame), setup)
             .add_systems(Update, handle_net_msg.run_if(in_state(AppState::InGame)));
     }
@@ -71,10 +76,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
                     match serde_json::from_str::<NetworkMessage>(&event.content) {
                         Ok(NetworkMessage::StartGame(players)) => {
                             let new_subscription = Filter::new()
-                                .authors(vec![
-                                    players.player1.to_string(),
-                                    players.player2.to_string(),
-                                ])
+                                .authors(vec![players.player1, players.player2])
                                 .kind(Kind::Regular(4444))
                                 .hashtag(tag.clone());
 
@@ -131,7 +133,10 @@ fn handle_net_msg(
                             return;
                         }
 
-                        let players = Players::new(send_net_msg.local_player, other_player);
+                        let players = Players::new(
+                            send_net_msg.nostr_keys.clone().public_key(),
+                            other_player,
+                        );
                         send_net_msg.start = true;
                         send_net_msg.clone().start_game(players);
 
@@ -142,8 +147,8 @@ fn handle_net_msg(
                             return;
                         }
 
-                        if send_net_msg.local_player != players.player1
-                            && send_net_msg.local_player != players.player2
+                        if send_net_msg.nostr_keys.clone().public_key() != players.player1
+                            && send_net_msg.nostr_keys.clone().public_key() != players.player2
                         {
                             send_net_msg.player_type = 3;
 

@@ -1,5 +1,10 @@
+use std::sync::Arc;
+
 use bevy::prelude::{error, Resource};
-use futures::channel::mpsc::{Receiver, Sender};
+use futures::{
+    channel::mpsc::{Receiver, Sender},
+    lock::Mutex,
+};
 use nostr_sdk::{
     secp256k1::XOnlyPublicKey, serde_json, ClientMessage, EventBuilder, Keys, Kind, Tag, Timestamp,
 };
@@ -98,26 +103,25 @@ impl NetworkStuff {
 pub struct SendNetMsg {
     pub send: Option<Sender<ClientMessage>>,
     pub start: bool,
-    pub local_player: XOnlyPublicKey,
     pub created_game: bool,
     pub nostr_keys: Keys,
     pub game_tag: Tag,
     pub player_type: usize,
+    pub nostr_public_key: Arc<Mutex<XOnlyPublicKey>>,
 }
 
 impl SendNetMsg {
-    pub fn new() -> Self {
+    pub fn new(nostr_keys: Option<Keys>) -> Self {
         let nostr_keys = Keys::generate();
-        let local_player = nostr_keys.public_key();
-
+        let nostr_public_key = Arc::new(Mutex::new(nostr_keys.public_key()));
         Self {
             send: None,
             start: false,
-            local_player,
             created_game: true,
             nostr_keys,
             game_tag: Tag::Hashtag("".to_string()),
             player_type: 0,
+            nostr_public_key,
         }
     }
 
@@ -142,7 +146,7 @@ impl SendNetMsg {
     }
 
     pub fn join_game(self) {
-        let msg = NetworkMessage::JoinGame(self.local_player);
+        let msg = NetworkMessage::JoinGame(self.nostr_keys.clone().public_key());
         let serialized_message = serde_json::to_string(&msg).unwrap();
 
         //use nip5 instead?
@@ -157,7 +161,7 @@ impl SendNetMsg {
                 serialized_message,
                 &[self.game_tag, expire, Tag::Hashtag("join_game".to_string())],
             )
-            .to_event(&self.nostr_keys)
+            .to_event(&self.nostr_keys.clone())
             .unwrap(),
         );
 
