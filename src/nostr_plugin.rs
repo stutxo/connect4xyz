@@ -48,9 +48,6 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
         let client = Client::new(&send_net_msg_clone.nostr_keys);
 
         #[cfg(target_arch = "wasm32")]
-        client.add_relay("wss://freespeech.casa").await.unwrap();
-
-        #[cfg(target_arch = "wasm32")]
         client.add_relay("wss://relay.nostrss.re").await.unwrap();
 
         client.connect().await;

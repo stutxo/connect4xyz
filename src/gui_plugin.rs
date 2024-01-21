@@ -624,10 +624,16 @@ pub fn new_game() {
 //     RESET_CALLED.store(true, Ordering::SeqCst);
 // }
 
+// #[wasm_bindgen]
+// pub fn nostr_login() {
+//     LOGIN_NOSTR_CALLED.store(true, Ordering::SeqCst);
+// }
 #[wasm_bindgen]
-pub fn nostr_login() {
+pub fn nostr_login(pubkey: String) {
+    info!("nostr login called {}", pubkey);
     LOGIN_NOSTR_CALLED.store(true, Ordering::SeqCst);
 }
+
 #[wasm_bindgen]
 pub fn guest_login() {
     LOGIN_GUEST_CALLED.store(true, Ordering::SeqCst);
