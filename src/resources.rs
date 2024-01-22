@@ -1,15 +1,20 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
-use bevy::prelude::{error, Resource};
+use bevy::{
+    log::info,
+    prelude::{error, Resource},
+};
 use futures::{
     channel::mpsc::{Receiver, Sender},
     lock::Mutex,
 };
 use nostr_sdk::{
-    secp256k1::XOnlyPublicKey, serde_json, ClientMessage, EventBuilder, Keys, Kind, Tag, Timestamp,
+    secp256k1::XOnlyPublicKey, serde_json, Client, ClientMessage, Event, EventBuilder, Filter,
+    Keys, Kind, Tag, Timestamp,
 };
 
 use serde::{Deserialize, Serialize};
+use wasm_bindgen_futures::spawn_local;
 
 use crate::messages::{NetworkMessage, Players};
 
@@ -107,13 +112,14 @@ pub struct SendNetMsg {
     pub nostr_keys: Keys,
     pub game_tag: Tag,
     pub player_type: usize,
-    pub nostr_public_key: Arc<Mutex<XOnlyPublicKey>>,
+    pub local_ln_address: Option<String>,
+    pub p2_ln_address: Option<String>,
 }
 
 impl SendNetMsg {
-    pub fn new(nostr_keys: Option<Keys>) -> Self {
+    pub fn new() -> Self {
         let nostr_keys = Keys::generate();
-        let nostr_public_key = Arc::new(Mutex::new(nostr_keys.public_key()));
+
         Self {
             send: None,
             start: false,
@@ -121,7 +127,8 @@ impl SendNetMsg {
             nostr_keys,
             game_tag: Tag::Hashtag("".to_string()),
             player_type: 0,
-            nostr_public_key,
+            local_ln_address: None,
+            p2_ln_address: None,
         }
     }
 
@@ -129,11 +136,11 @@ impl SendNetMsg {
         let msg = NetworkMessage::NewGame;
         let serialized_message = serde_json::to_string(&msg).unwrap();
 
-        let nostr_msg = ClientMessage::new_event(
+        let nostr_msg = ClientMessage::event(
             EventBuilder::new(
                 Kind::Replaceable(11111),
                 serialized_message,
-                &[self.game_tag],
+                [self.game_tag],
             )
             .to_event(&self.nostr_keys)
             .unwrap(),
@@ -155,11 +162,11 @@ impl SendNetMsg {
 
         let expire = Tag::Expiration(Timestamp::now() + 5_i64);
 
-        let nostr_msg = ClientMessage::new_event(
+        let nostr_msg = ClientMessage::event(
             EventBuilder::new(
                 Kind::Ephemeral(21000),
                 serialized_message,
-                &[self.game_tag, expire, Tag::Hashtag("join_game".to_string())],
+                [self.game_tag, expire, Tag::Hashtag("join_game".to_string())],
             )
             .to_event(&self.nostr_keys.clone())
             .unwrap(),
@@ -175,11 +182,11 @@ impl SendNetMsg {
         let msg = NetworkMessage::StartGame(players);
         let serialized_message = serde_json::to_string(&msg).unwrap();
 
-        let nostr_msg = ClientMessage::new_event(
+        let nostr_msg = ClientMessage::event(
             EventBuilder::new(
                 Kind::Replaceable(11111),
                 serialized_message,
-                &[self.game_tag],
+                [self.game_tag],
             )
             .to_event(&self.nostr_keys)
             .unwrap(),
@@ -195,8 +202,8 @@ impl SendNetMsg {
         let msg = NetworkMessage::Input(input);
         let serialized_message = serde_json::to_string(&msg).unwrap();
 
-        let nostr_msg = ClientMessage::new_event(
-            EventBuilder::new(Kind::Regular(4444), serialized_message, &[self.game_tag])
+        let nostr_msg = ClientMessage::event(
+            EventBuilder::new(Kind::Regular(4444), serialized_message, [self.game_tag])
                 .to_event(&self.nostr_keys)
                 .unwrap(),
         );
@@ -211,8 +218,8 @@ impl SendNetMsg {
         let msg = NetworkMessage::Replay;
         let serialized_message = serde_json::to_string(&msg).unwrap();
 
-        let nostr_msg = ClientMessage::new_event(
-            EventBuilder::new(Kind::Regular(4444), serialized_message, &[self.game_tag])
+        let nostr_msg = ClientMessage::event(
+            EventBuilder::new(Kind::Regular(4444), serialized_message, [self.game_tag])
                 .to_event(&self.nostr_keys)
                 .unwrap(),
         );
@@ -221,5 +228,30 @@ impl SendNetMsg {
             Ok(()) => {}
             Err(e) => error!("Error sending new_game message: {}", e),
         };
+    }
+
+    pub fn get_local_ln_address(self, pubkey: XOnlyPublicKey) {
+        spawn_local(async move {
+            let nostr_client = Client::new(&self.nostr_keys);
+
+            #[cfg(target_arch = "wasm32")]
+            nostr_client
+                .add_relay("wss://relay.nostrss.re")
+                .await
+                .unwrap();
+            nostr_client.connect().await;
+
+            let filter = Filter::new().author(pubkey).kind(Kind::Metadata).limit(1);
+
+            info!("filter: {:#?}", filter);
+
+            let events: Vec<Event> = nostr_client
+                .get_events_of(vec![filter], Some(Duration::new(10, 0)))
+                .await
+                .unwrap();
+            info!("events: {:#?}", events);
+
+            let _ = nostr_client.disconnect().await;
+        });
     }
 }

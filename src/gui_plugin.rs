@@ -1,14 +1,18 @@
 use std::{
     str::FromStr,
-    sync::atomic::{AtomicBool, Ordering},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Mutex,
+    },
 };
 
 use bevy::{asset::AssetMetaCheck, core_pipeline::clear_color::ClearColorConfig, prelude::*};
 use js_sys::Uint8Array;
-use nostr_sdk::{secp256k1::XOnlyPublicKey, serde_json, Keys};
+use nostr_sdk::{secp256k1::XOnlyPublicKey, serde_json, Filter, JsonUtil, Keys, Kind, Metadata};
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::JsFuture;
 extern crate js_sys;
+use lazy_static::lazy_static;
 
 use crate::{
     components::{CoinMove, CoinSlot, DisplayTurn, ReplayButton, TextChanges, TopRow},
@@ -27,8 +31,13 @@ const ROWS: usize = 7;
 const SPACING: f32 = 5.0;
 
 static CEATE_GAME_CALLED: AtomicBool = AtomicBool::new(false);
-static LOGIN_NOSTR_CALLED: AtomicBool = AtomicBool::new(false);
 static LOGIN_GUEST_CALLED: AtomicBool = AtomicBool::new(false);
+static LOGIN_NOSTR_CALLED: AtomicBool = AtomicBool::new(false);
+
+lazy_static! {
+    static ref LOGIN_PUBKEY: Mutex<Option<String>> = Mutex::new(None);
+}
+
 // static RESET_CALLED: AtomicBool = AtomicBool::new(false);
 
 pub struct Connect4GuiPlugin;
@@ -58,11 +67,12 @@ fn nostr_keys(mut send_net_msg: ResMut<SendNetMsg>, mut next_state: ResMut<NextS
         if LOGIN_NOSTR_CALLED.load(Ordering::SeqCst) {
             LOGIN_NOSTR_CALLED.store(false, Ordering::SeqCst);
 
-            let pub_key = send_net_msg.nostr_public_key.clone();
-            wasm_bindgen_futures::spawn_local(async move {
-                let mut pub_key = pub_key.lock().await;
-                *pub_key = get_pub_key().await;
-            });
+            let pubkey = LOGIN_PUBKEY.lock().unwrap();
+
+            let xonly_pubkey = XOnlyPublicKey::from_str(&pubkey.as_ref().unwrap()).unwrap();
+
+            send_net_msg.clone().get_local_ln_address(xonly_pubkey);
+
             let window = web_sys::window().unwrap();
             let event = web_sys::CustomEvent::new("loggedIn").unwrap();
             window.dispatch_event(&event).unwrap();
@@ -80,11 +90,13 @@ fn nostr_keys(mut send_net_msg: ResMut<SendNetMsg>, mut next_state: ResMut<NextS
     } else {
         if LOGIN_NOSTR_CALLED.load(Ordering::SeqCst) {
             LOGIN_NOSTR_CALLED.store(false, Ordering::SeqCst);
-            let pub_key = send_net_msg.nostr_public_key.clone();
-            wasm_bindgen_futures::spawn_local(async move {
-                let mut pub_key = pub_key.lock().await;
-                *pub_key = get_pub_key().await;
-            });
+
+            let pubkey = LOGIN_PUBKEY.lock().unwrap();
+
+            let xonly_pubkey = XOnlyPublicKey::from_str(&pubkey.as_ref().unwrap()).unwrap();
+
+            send_net_msg.clone().get_local_ln_address(xonly_pubkey);
+
             let window = web_sys::window().unwrap();
             let event = web_sys::CustomEvent::new("loggedIn").unwrap();
             window.dispatch_event(&event).unwrap();
@@ -630,47 +642,13 @@ pub fn new_game() {
 // }
 #[wasm_bindgen]
 pub fn nostr_login(pubkey: String) {
-    info!("nostr login called {}", pubkey);
+    let mut pubkey_storage = LOGIN_PUBKEY.lock().unwrap();
+    *pubkey_storage = Some(pubkey);
+
     LOGIN_NOSTR_CALLED.store(true, Ordering::SeqCst);
 }
 
 #[wasm_bindgen]
 pub fn guest_login() {
     LOGIN_GUEST_CALLED.store(true, Ordering::SeqCst);
-}
-
-#[wasm_bindgen(inline_js = "
-export async function pub_key() {
-    if (typeof window.nostr !== 'undefined') {
-        try {
-            const encoder = new TextEncoder();
-            const publicKey = await window.nostr.getPublicKey();
-            const view = encoder.encode(publicKey);
-            console.log(view);
-            return view;
-        } catch (error) {
-            // Handle the error when the popup is closed or any other error
-            console.error('Error occurred:', error);
-            // Return null or handle it in a way that does not crash your app
-            return null;
-        }
-    } else {
-        console.error('window.nostr is not available');
-        return null;
-    }
-}
-")]
-
-extern "C" {
-    async fn pub_key() -> JsValue;
-}
-
-async fn get_pub_key() -> XOnlyPublicKey {
-    info!("nostr login called");
-    let get_pub_key = pub_key().await;
-
-    let array = Uint8Array::new(&get_pub_key);
-    let bytes: Vec<u8> = array.to_vec();
-    let nostr_pub_key = std::str::from_utf8(&bytes).unwrap();
-    XOnlyPublicKey::from_str(nostr_pub_key).unwrap()
 }

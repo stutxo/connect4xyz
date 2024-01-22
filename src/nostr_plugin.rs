@@ -25,7 +25,7 @@ pub struct NostrPlugin;
 impl Plugin for NostrPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(NetworkStuff::new())
-            .insert_resource(SendNetMsg::new(None))
+            .insert_resource(SendNetMsg::new())
             .add_systems(OnEnter(AppState::InGame), setup)
             .add_systems(Update, handle_net_msg.run_if(in_state(AppState::InGame)));
     }
@@ -69,7 +69,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
 
         client
             .handle_notifications(|notification| async {
-                if let RelayPoolNotification::Event(_url, event) = notification {
+                if let RelayPoolNotification::Event { event, relay_url } = notification {
                     match serde_json::from_str::<NetworkMessage>(&event.content) {
                         Ok(NetworkMessage::StartGame(players)) => {
                             let new_subscription = Filter::new()
@@ -122,7 +122,6 @@ fn handle_net_msg(
                         if send_net_msg.start {
                             return;
                         }
-
                         send_net_msg.clone().join_game();
                     }
                     NetworkMessage::JoinGame(other_player) => {

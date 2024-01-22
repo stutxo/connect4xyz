@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-nostr-sdk = "0.25"
+nostr-sdk = "0.27.0"
 js-sys = "0.3.66"
 wasm-bindgen-futures = "0.4.39"
 futures = "0.3.28"
@@ -18,6 +18,7 @@ web-sys = { version = "0.3.64", features = [
     'CustomEventInit',
 ] }
 wasm-bindgen = "0.2.87"
+lazy_static = "1.4.0"
 
 
 [profile.release]
