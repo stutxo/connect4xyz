@@ -1,16 +1,16 @@
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 use bevy::{
     log::info,
     prelude::{error, Resource},
 };
-use futures::{
-    channel::mpsc::{Receiver, Sender},
-    lock::Mutex,
-};
+use futures::channel::mpsc::{Receiver, Sender};
 use nostr_sdk::{
     secp256k1::XOnlyPublicKey, serde_json, Client, ClientMessage, Event, EventBuilder, Filter,
-    Keys, Kind, Tag, Timestamp,
+    JsonUtil, Keys, Kind, Metadata, Tag, Timestamp,
 };
 
 use serde::{Deserialize, Serialize};
@@ -228,30 +228,5 @@ impl SendNetMsg {
             Ok(()) => {}
             Err(e) => error!("Error sending new_game message: {}", e),
         };
-    }
-
-    pub fn get_local_ln_address(self, pubkey: XOnlyPublicKey) {
-        spawn_local(async move {
-            let nostr_client = Client::new(&self.nostr_keys);
-
-            #[cfg(target_arch = "wasm32")]
-            nostr_client
-                .add_relay("wss://relay.nostrss.re")
-                .await
-                .unwrap();
-            nostr_client.connect().await;
-
-            let filter = Filter::new().author(pubkey).kind(Kind::Metadata).limit(1);
-
-            info!("filter: {:#?}", filter);
-
-            let events: Vec<Event> = nostr_client
-                .get_events_of(vec![filter], Some(Duration::new(10, 0)))
-                .await
-                .unwrap();
-            info!("events: {:#?}", events);
-
-            let _ = nostr_client.disconnect().await;
-        });
     }
 }

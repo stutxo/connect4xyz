@@ -4,15 +4,19 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Mutex,
     },
+    time::Duration,
 };
 
 use bevy::{asset::AssetMetaCheck, core_pipeline::clear_color::ClearColorConfig, prelude::*};
 use js_sys::Uint8Array;
-use nostr_sdk::{secp256k1::XOnlyPublicKey, serde_json, Filter, JsonUtil, Keys, Kind, Metadata};
+use nostr_sdk::{
+    secp256k1::XOnlyPublicKey, serde_json, Client, Event as NostrEvent, Filter, JsonUtil, Keys,
+    Kind, Metadata,
+};
+use once_cell::sync::Lazy;
 use wasm_bindgen::JsValue;
-use wasm_bindgen_futures::JsFuture;
+use wasm_bindgen_futures::{spawn_local, JsFuture};
 extern crate js_sys;
-use lazy_static::lazy_static;
 
 use crate::{
     components::{CoinMove, CoinSlot, DisplayTurn, ReplayButton, TextChanges, TopRow},
@@ -31,12 +35,9 @@ const ROWS: usize = 7;
 const SPACING: f32 = 5.0;
 
 static CEATE_GAME_CALLED: AtomicBool = AtomicBool::new(false);
-static LOGIN_GUEST_CALLED: AtomicBool = AtomicBool::new(false);
-static LOGIN_NOSTR_CALLED: AtomicBool = AtomicBool::new(false);
+static LOGIN_CALLED: AtomicBool = AtomicBool::new(false);
 
-lazy_static! {
-    static ref LOGIN_PUBKEY: Mutex<Option<String>> = Mutex::new(None);
-}
+pub static LOGIN_PUBKEY: Lazy<Mutex<Option<String>>> = Lazy::new(|| Mutex::new(None));
 
 // static RESET_CALLED: AtomicBool = AtomicBool::new(false);
 
@@ -64,23 +65,8 @@ impl Plugin for Connect4GuiPlugin {
 
 fn nostr_keys(mut send_net_msg: ResMut<SendNetMsg>, mut next_state: ResMut<NextState<AppState>>) {
     if send_net_msg.created_game {
-        if LOGIN_NOSTR_CALLED.load(Ordering::SeqCst) {
-            LOGIN_NOSTR_CALLED.store(false, Ordering::SeqCst);
-
-            let pubkey = LOGIN_PUBKEY.lock().unwrap();
-
-            let xonly_pubkey = XOnlyPublicKey::from_str(&pubkey.as_ref().unwrap()).unwrap();
-
-            send_net_msg.clone().get_local_ln_address(xonly_pubkey);
-
-            let window = web_sys::window().unwrap();
-            let event = web_sys::CustomEvent::new("loggedIn").unwrap();
-            window.dispatch_event(&event).unwrap();
-            next_state.set(AppState::Menu);
-        }
-
-        if LOGIN_GUEST_CALLED.load(Ordering::SeqCst) {
-            LOGIN_GUEST_CALLED.store(false, Ordering::SeqCst);
+        if LOGIN_CALLED.load(Ordering::SeqCst) {
+            LOGIN_CALLED.store(false, Ordering::SeqCst);
 
             let window = web_sys::window().unwrap();
             let event = web_sys::CustomEvent::new("loggedIn").unwrap();
@@ -88,23 +74,9 @@ fn nostr_keys(mut send_net_msg: ResMut<SendNetMsg>, mut next_state: ResMut<NextS
             next_state.set(AppState::Menu);
         }
     } else {
-        if LOGIN_NOSTR_CALLED.load(Ordering::SeqCst) {
-            LOGIN_NOSTR_CALLED.store(false, Ordering::SeqCst);
+        if LOGIN_CALLED.load(Ordering::SeqCst) {
+            LOGIN_CALLED.store(false, Ordering::SeqCst);
 
-            let pubkey = LOGIN_PUBKEY.lock().unwrap();
-
-            let xonly_pubkey = XOnlyPublicKey::from_str(&pubkey.as_ref().unwrap()).unwrap();
-
-            send_net_msg.clone().get_local_ln_address(xonly_pubkey);
-
-            let window = web_sys::window().unwrap();
-            let event = web_sys::CustomEvent::new("loggedIn").unwrap();
-            window.dispatch_event(&event).unwrap();
-            next_state.set(AppState::InGame);
-        }
-
-        if LOGIN_GUEST_CALLED.load(Ordering::SeqCst) {
-            LOGIN_GUEST_CALLED.store(false, Ordering::SeqCst);
             let window = web_sys::window().unwrap();
             let event = web_sys::CustomEvent::new("loggedIn").unwrap();
             window.dispatch_event(&event).unwrap();
@@ -536,17 +508,17 @@ fn update_text(
     }
 
     let new_image: Option<&str>;
-    let mut new_text_value: &str;
+    let mut new_text_value: String;
 
     if board.winner.is_some() {
         if board.winner == Some(send_net_msg.player_type) {
-            new_text_value = "You win!!";
+            new_text_value = "You win!!".to_string();
         } else {
-            new_text_value = "You lose!!";
+            new_text_value = "You lose!!".to_string();
         }
 
         if send_net_msg.player_type == 3 {
-            new_text_value = "Game Over!!";
+            new_text_value = "Game Over!!".to_string();
             new_image = match board.winner {
                 Some(1) => Some("red_circle.png"),
                 _ => Some("yellow_circle.png"),
@@ -559,10 +531,10 @@ fn update_text(
             };
         }
     } else if board.draw {
-        new_text_value = "Its a draw!!";
+        new_text_value = "Its a draw!!".to_string();
         new_image = None;
     } else if send_net_msg.player_type == 0 {
-        new_text_value = "Waiting for player to join...";
+        new_text_value = "Waiting for player to join...".to_string();
         new_image = None;
     } else {
         new_image = match board.player_turn {
@@ -572,9 +544,15 @@ fn update_text(
         };
 
         new_text_value = match send_net_msg.player_type {
-            3 => "Spectating",
-            _ if board.player_turn == send_net_msg.player_type => "Its your turn",
-            _ => "Player 2's turn...",
+            3 => "Spectating".to_string(),
+            _ if board.player_turn == send_net_msg.player_type => {
+                let address_display = match &send_net_msg.local_ln_address {
+                    Some(address) => address.clone(),
+                    None => "".to_string(), // Or any default string you'd like to display
+                };
+                format!("Its your turn {}", address_display)
+            }
+            _ => "Player 2's turn...".to_string(),
         };
     }
 
@@ -642,13 +620,41 @@ pub fn new_game() {
 // }
 #[wasm_bindgen]
 pub fn nostr_login(pubkey: String) {
-    let mut pubkey_storage = LOGIN_PUBKEY.lock().unwrap();
-    *pubkey_storage = Some(pubkey);
+    spawn_local(async move {
+        let pubkey = pubkey.clone();
+        let my_keys: Keys = Keys::generate();
+        let nostr_client = Client::new(&my_keys);
 
-    LOGIN_NOSTR_CALLED.store(true, Ordering::SeqCst);
+        #[cfg(target_arch = "wasm32")]
+        nostr_client.add_relay("wss://nostr.zbd.gg").await.unwrap();
+        nostr_client.connect().await;
+
+        let pubkey = XOnlyPublicKey::from_str(&pubkey).unwrap();
+
+        let filter = Filter::new().author(pubkey).kind(Kind::Metadata).limit(1);
+
+        let events: Vec<NostrEvent> = nostr_client
+            .get_events_of(vec![filter], Some(Duration::new(10, 0)))
+            .await
+            .unwrap();
+        info!("events: {:#?}", events);
+
+        if let Some(event) = events.into_iter().next() {
+            let metadata = Metadata::from_json(event.content.clone()).unwrap();
+
+            let ln_address = metadata.lud16;
+
+            let mut pubkey_storage = LOGIN_PUBKEY.lock().unwrap();
+            *pubkey_storage = Some(ln_address.unwrap());
+        }
+
+        let _ = nostr_client.disconnect().await;
+    });
+
+    LOGIN_CALLED.store(true, Ordering::SeqCst);
 }
 
 #[wasm_bindgen]
 pub fn guest_login() {
-    LOGIN_GUEST_CALLED.store(true, Ordering::SeqCst);
+    LOGIN_CALLED.store(true, Ordering::SeqCst);
 }

@@ -10,6 +10,7 @@ use wasm_bindgen_futures::spawn_local;
 
 use crate::{
     components::{CoinMove, ReplayButton},
+    gui_plugin::LOGIN_PUBKEY,
     messages::{NetworkMessage, Players},
     resources::{Board, NetworkStuff, PlayerMove, SendNetMsg},
     AppState,
@@ -32,6 +33,10 @@ impl Plugin for NostrPlugin {
 }
 
 fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendNetMsg>) {
+    if let Some(pubkey) = LOGIN_PUBKEY.lock().expect("Mutex is poisoned").as_ref() {
+        send_net_msg.local_ln_address = Some(pubkey.clone());
+    }
+
     let (send_tx, send_rx) = futures::channel::mpsc::channel::<String>(1000);
     let (nostr_msg_tx, mut nostr_msg_rx) = futures::channel::mpsc::channel::<ClientMessage>(1000);
 
