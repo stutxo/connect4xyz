@@ -10,7 +10,7 @@ use bevy::prelude::*;
 use futures::{lock::Mutex, StreamExt};
 use nostr_sdk::{
     serde_json, Client, ClientMessage, Event as NostrEvent, EventBuilder, Filter, Keys, Kind,
-    RelayPoolNotification, Tag,
+    RelayPoolNotification, Tag, Timestamp,
 };
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen_futures::spawn_local;
@@ -89,15 +89,13 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
                 if let RelayPoolNotification::Message { message, relay_url } = notification {
                     match message {
                         nostr_sdk::RelayMessage::EndOfStoredEvents(subid) => {
-                            let mut player_id = 3;
+                            let mut spectator = false;
                             info!("end of stored events");
                             let mut events = events.lock().await;
 
                             if let Some(last_event) = events.last() {
                                 match serde_json::from_str::<NetworkMessage>(&last_event.content) {
                                     Ok(NetworkMessage::NewGame) => {
-                                        //this means you are player 2
-                                        player_id = 2;
                                         info!("current tip: {:?}", last_event.content);
                                         let msg = NetworkMessage::JoinGame;
                                         let serialized_message =
@@ -124,14 +122,14 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
                                         //this means you are player 3
                                         info!("current tip: {:?}", last_event.content);
                                         info!("spectate mode");
+                                        spectator = true;
                                     }
                                     Err(error) => {
                                         info!("error: {:?}", error);
+                                        spectator = true;
                                     }
                                 }
                             } else {
-                                //this means you are player 1
-                                player_id = 1;
                                 info!("current tip: no events");
                                 let msg = NetworkMessage::NewGame;
                                 let serialized_message = serde_json::to_string(&msg).unwrap();
@@ -159,13 +157,25 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
                                     info!("skipping own event");
                                     continue;
                                 }
-                                if event.content.contains("NewGame") && player_id == 3 {
-                                    info!("skipping new_game event");
+                                if event.content.contains("NewGame") && spectator
+                                    || event.content.contains("JoinGame") && spectator
+                                {
+                                    info!("skipping event");
                                     continue;
                                 }
-                                if event.content.contains("JoinGame") && player_id == 3 {
-                                    info!("skipping new_game event");
-                                    continue;
+                                if event.content.contains("NewGame")
+                                    || event.content.contains("JoinGame")
+                                {
+                                    //sub to messages only from the other players pubkey to stop spam
+                                    let new_subscription = Filter::new()
+                                        .author(event.pubkey)
+                                        .kind(Kind::Regular(4444))
+                                        .since(Timestamp::now())
+                                        .hashtag(tag.clone());
+
+                                    info!("sub to {:?}", event.pubkey);
+
+                                    client.subscribe(vec![new_subscription]).await;
                                 }
 
                                 info!("processing stored event: {:?}", event);
@@ -219,54 +229,10 @@ fn handle_net_msg(
     coin_query: Query<Entity, With<CoinMove>>,
     mut replay_button: Query<(&mut ReplayButton, &mut Visibility)>,
 ) {
-    // if send_net_msg.created_game {
-    //     send_net_msg.clone().new_game();
-    //     send_net_msg.created_game = false;
-    // }
-
     if let Some(ref mut receive_rx) = network_stuff.read {
         while let Ok(Some(message)) = receive_rx.try_next() {
             match serde_json::from_str::<NetworkMessage>(&message) {
                 Ok(network_message) => match network_message {
-                    // NetworkMessage::NewGame => {
-                    //     if send_net_msg.start {
-                    //         return;
-                    //     }
-                    //     send_net_msg.clone().join_game();
-                    // }
-                    // NetworkMessage::JoinGame => {
-                    // if send_net_msg.start {
-                    //     return;
-                    // }
-
-                    // let players = Players::new(
-                    //     send_net_msg.nostr_keys.clone().public_key(),
-                    //     other_player,
-                    // );
-                    // send_net_msg.start = true;
-                    // send_net_msg.clone().start_game(players);
-
-                    // send_net_msg.player_type = 1;
-                    // }
-                    // NetworkMessage::StartGame(players) => {
-                    //     if send_net_msg.start {
-                    //         return;
-                    //     }
-
-                    //     if send_net_msg.nostr_keys.clone().public_key() != players.player1
-                    //         && send_net_msg.nostr_keys.clone().public_key() != players.player2
-                    //     {
-                    //         send_net_msg.player_type = 3;
-
-                    //         send_net_msg.start = true;
-                    //         return;
-                    //     }
-
-                    //     send_net_msg.clone().start_game(players);
-
-                    //     send_net_msg.start = true;
-                    //     send_net_msg.player_type = 2;
-                    // }
                     NetworkMessage::Input(new_input) => {
                         if send_net_msg.player_type == 0 {
                             send_net_msg.player_type = 3;
@@ -330,12 +296,18 @@ fn handle_net_msg(
                         }
                     }
                     NetworkMessage::JoinGame => {
+                        if send_net_msg.start {
+                            continue;
+                        }
                         //recevied message from p2 so you must be p1
                         send_net_msg.player_type = 1;
                         info!("player type: 1");
                         send_net_msg.start = true;
                     }
                     NetworkMessage::NewGame => {
+                        if send_net_msg.start {
+                            continue;
+                        }
                         //recevied message from p1 so you must be p2
                         send_net_msg.player_type = 2;
                         info!("player type: 2");
