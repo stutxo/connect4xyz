@@ -63,7 +63,7 @@ impl Plugin for Connect4GuiPlugin {
     }
 }
 
-fn nostr_keys(mut send_net_msg: ResMut<SendNetMsg>, mut next_state: ResMut<NextState<AppState>>) {
+fn nostr_keys(send_net_msg: ResMut<SendNetMsg>, mut next_state: ResMut<NextState<AppState>>) {
     if send_net_msg.created_game {
         if LOGIN_CALLED.load(Ordering::SeqCst) {
             LOGIN_CALLED.store(false, Ordering::SeqCst);
@@ -548,7 +548,7 @@ fn update_text(
             _ if board.player_turn == send_net_msg.player_type => {
                 let address_display = match &send_net_msg.local_ln_address {
                     Some(address) => address.clone(),
-                    None => "".to_string(), // Or any default string you'd like to display
+                    None => "".to_string(),
                 };
                 format!("Its your turn {}", address_display)
             }
