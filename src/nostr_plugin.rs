@@ -10,7 +10,7 @@ use bevy::prelude::*;
 use futures::{lock::Mutex, StreamExt};
 use nostr_sdk::{
     serde_json, Client, ClientMessage, Event as NostrEvent, EventBuilder, Filter, Keys, Kind,
-    RelayPoolNotification, Tag, Timestamp,
+    RelayPoolNotification, Tag,
 };
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen_futures::spawn_local;
@@ -27,13 +27,6 @@ const COIN_SIZE: Vec2 = Vec2::new(40.0, 40.0);
 const COLUMNS: usize = 7;
 const ROWS: usize = 7;
 const SPACING: f32 = 5.0;
-
-#[derive(Debug)]
-enum Mode {
-    ListGameMode,
-    SpectateMode,
-    JoinGameMode,
-}
 
 pub struct NostrPlugin;
 
@@ -83,7 +76,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
             }
         });
 
-        let filter = Filter::new().hashtag(tag.clone());
+        let filter = Filter::new().kind(Kind::Regular(4444)).hashtag(tag.clone());
 
         client.subscribe(vec![filter]).await;
 
@@ -96,12 +89,15 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
                 if let RelayPoolNotification::Message { message, relay_url } = notification {
                     match message {
                         nostr_sdk::RelayMessage::EndOfStoredEvents(subid) => {
+                            let mut player_id = 3;
                             info!("end of stored events");
                             let mut events = events.lock().await;
 
                             if let Some(last_event) = events.last() {
                                 match serde_json::from_str::<NetworkMessage>(&last_event.content) {
                                     Ok(NetworkMessage::NewGame) => {
+                                        //this means you are player 2
+                                        player_id = 2;
                                         info!("current tip: {:?}", last_event.content);
                                         let msg = NetworkMessage::JoinGame;
                                         let serialized_message =
@@ -125,6 +121,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
                                         };
                                     }
                                     Ok(_) => {
+                                        //this means you are player 3
                                         info!("current tip: {:?}", last_event.content);
                                         info!("spectate mode");
                                     }
@@ -133,6 +130,8 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
                                     }
                                 }
                             } else {
+                                //this means you are player 1
+                                player_id = 1;
                                 info!("current tip: no events");
                                 let msg = NetworkMessage::NewGame;
                                 let serialized_message = serde_json::to_string(&msg).unwrap();
@@ -156,7 +155,21 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
                             };
 
                             for event in events.drain(..) {
+                                if event.pubkey == nostr_keys.public_key() {
+                                    info!("skipping own event");
+                                    continue;
+                                }
+                                if event.content.contains("NewGame") && player_id == 3 {
+                                    info!("skipping new_game event");
+                                    continue;
+                                }
+                                if event.content.contains("JoinGame") && player_id == 3 {
+                                    info!("skipping new_game event");
+                                    continue;
+                                }
+
                                 info!("processing stored event: {:?}", event);
+
                                 match send_tx.clone().try_send(event.content.clone()) {
                                     Ok(()) => {}
                                     Err(e) => {
@@ -172,13 +185,15 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
                             event,
                         } => {
                             if stored_events_finished.load(Ordering::SeqCst) {
-                                info!("processing new event: {:?}", event);
-                                match send_tx.clone().try_send(event.content.clone()) {
-                                    Ok(()) => {}
-                                    Err(e) => {
-                                        error!("Error sending message: {} CHANNEL FULL???", e)
-                                    }
-                                };
+                                if event.pubkey != nostr_keys.public_key() {
+                                    info!("new event: {:?}", event);
+                                    match send_tx.clone().try_send(event.content.clone()) {
+                                        Ok(()) => {}
+                                        Err(e) => {
+                                            error!("Error sending message: {} CHANNEL FULL???", e)
+                                        }
+                                    };
+                                }
                             } else {
                                 events.lock().await.push(*event);
                             }
@@ -253,6 +268,9 @@ fn handle_net_msg(
                     //     send_net_msg.player_type = 2;
                     // }
                     NetworkMessage::Input(new_input) => {
+                        if send_net_msg.player_type == 0 {
+                            send_net_msg.player_type = 3;
+                        }
                         let row_pos = board.moves.iter().filter(|m| m.column == new_input).count();
                         if row_pos <= 5 {
                             let player_move =
@@ -311,7 +329,18 @@ fn handle_net_msg(
                             *visibility = Visibility::Hidden;
                         }
                     }
-                    _ => {}
+                    NetworkMessage::JoinGame => {
+                        //recevied message from p2 so you must be p1
+                        send_net_msg.player_type = 1;
+                        info!("player type: 1");
+                        send_net_msg.start = true;
+                    }
+                    NetworkMessage::NewGame => {
+                        //recevied message from p1 so you must be p2
+                        send_net_msg.player_type = 2;
+                        info!("player type: 2");
+                        send_net_msg.start = true;
+                    }
                 },
 
                 Err(e) => {
