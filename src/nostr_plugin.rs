@@ -18,7 +18,7 @@ use wasm_bindgen_futures::spawn_local;
 use crate::{
     components::{CoinMove, ReplayButton},
     gui_plugin::LOGIN_PUBKEY,
-    messages::{GameNetworkMessage, LobbyNetworkMessage, NetworkMessage, Players},
+    messages::{GameNetworkMessage, LobbyNetworkMessage, Players},
     resources::{Board, NetworkStuff, PlayerMove, SendNetMsg},
     AppState,
 };
@@ -46,11 +46,7 @@ impl Plugin for NostrPlugin {
     }
 }
 
-fn setup(
-    mut network_stuff: ResMut<NetworkStuff>,
-    mut send_net_msg: ResMut<SendNetMsg>,
-    mut buffer: Local<Arc<Mutex<Vec<String>>>>,
-) {
+fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendNetMsg>) {
     if let Some(pubkey) = LOGIN_PUBKEY.lock().expect("Mutex is poisoned").as_ref() {
         send_net_msg.local_ln_address = Some(pubkey.clone());
     }
@@ -58,7 +54,7 @@ fn setup(
     let (send_tx, send_rx) = futures::channel::mpsc::channel::<String>(1000);
     let (nostr_msg_tx, mut nostr_msg_rx) = futures::channel::mpsc::channel::<ClientMessage>(1000);
 
-    let nostr_msg_tx_clone = nostr_msg_tx.clone();
+    let mut nostr_msg_tx_clone = nostr_msg_tx.clone();
 
     let location = web_sys::window().unwrap().location();
     let tag = location.pathname().unwrap().to_string();
@@ -68,8 +64,6 @@ fn setup(
 
     network_stuff.read = Some(send_rx);
     send_net_msg.send = Some(nostr_msg_tx);
-
-    let buffer_clone = buffer.clone();
 
     spawn_local(async move {
         let nostr_keys = &send_net_msg_clone.nostr_keys;
@@ -99,17 +93,12 @@ fn setup(
             .await
             .unwrap();
 
-        for event in events {
-            buffer_clone.lock().await.push(event.content.clone());
-        }
-
-        info!("{:#?}", buffer_clone.lock().await);
-
-        if let Some(last_event) = buffer_clone.lock().await.last() {
-            match serde_json::from_str::<LobbyNetworkMessage>(last_event) {
+        if let Some(last_event) = events.last() {
+            info!("{:#?}", last_event);
+            match serde_json::from_str::<LobbyNetworkMessage>(&last_event.content) {
                 Ok(LobbyNetworkMessage::NewGame) => {
                     info!("current tip: new game, sending join game");
-                    let msg = NetworkMessage::JoinGame;
+                    let msg = LobbyNetworkMessage::JoinGame;
                     let serialized_message = serde_json::to_string(&msg).unwrap();
 
                     let nostr_msg = ClientMessage::event(
@@ -122,20 +111,23 @@ fn setup(
                         .unwrap(),
                     );
 
-                    match send_net_msg_clone.send.clone().unwrap().try_send(nostr_msg) {
+                    match nostr_msg_tx_clone.try_send(nostr_msg) {
                         Ok(()) => {}
                         Err(e) => error!("Error sending join_game message: {}", e),
                     };
                 }
-                Ok(_) => {
-                    info!("current tip: game in progress");
+                Ok(msg) => {
+                    info!("current tip: {:?}", msg);
                     info!("spectate mode");
                 }
-                Err(_) => {}
+                Err(error) => {
+                    info!("error: {:?}", error);
+                    info!("spectate mode");
+                }
             }
         } else {
             info!("current tip: no events, sending new game");
-            let msg = NetworkMessage::NewGame;
+            let msg = LobbyNetworkMessage::NewGame;
             let serialized_message = serde_json::to_string(&msg).unwrap();
 
             let nostr_msg = ClientMessage::event(
@@ -148,7 +140,7 @@ fn setup(
                 .unwrap(),
             );
 
-            match send_net_msg_clone.send.clone().unwrap().try_send(nostr_msg) {
+            match nostr_msg_tx_clone.try_send(nostr_msg) {
                 Ok(()) => {}
                 Err(e) => error!("Error sending join_game message: {}", e),
             };
@@ -209,10 +201,10 @@ fn handle_net_msg(
     coin_query: Query<Entity, With<CoinMove>>,
     mut replay_button: Query<(&mut ReplayButton, &mut Visibility)>,
 ) {
-    if send_net_msg.created_game {
-        send_net_msg.clone().new_game();
-        send_net_msg.created_game = false;
-    }
+    // if send_net_msg.created_game {
+    //     send_net_msg.clone().new_game();
+    //     send_net_msg.created_game = false;
+    // }
 
     if let Some(ref mut receive_rx) = network_stuff.read {
         while let Ok(Some(message)) = receive_rx.try_next() {

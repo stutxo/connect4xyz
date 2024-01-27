@@ -16,7 +16,7 @@ use nostr_sdk::{
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_futures::spawn_local;
 
-use crate::messages::{NetworkMessage, Players};
+use crate::messages::{GameNetworkMessage, LobbyNetworkMessage, Players};
 
 #[derive(Resource)]
 pub struct Board {
@@ -132,74 +132,74 @@ impl SendNetMsg {
         }
     }
 
-    pub fn new_game(self) {
-        let msg = NetworkMessage::NewGame;
-        let serialized_message = serde_json::to_string(&msg).unwrap();
+    // pub fn new_game(self) {
+    //     let msg = NetworkMessage::NewGame;
+    //     let serialized_message = serde_json::to_string(&msg).unwrap();
 
-        let nostr_msg = ClientMessage::event(
-            EventBuilder::new(
-                Kind::Replaceable(11111),
-                serialized_message,
-                [self.game_tag],
-            )
-            .to_event(&self.nostr_keys)
-            .unwrap(),
-        );
+    //     let nostr_msg = ClientMessage::event(
+    //         EventBuilder::new(
+    //             Kind::Replaceable(11111),
+    //             serialized_message,
+    //             [self.game_tag],
+    //         )
+    //         .to_event(&self.nostr_keys)
+    //         .unwrap(),
+    //     );
 
-        match self.send.clone().unwrap().try_send(nostr_msg) {
-            Ok(()) => {}
-            Err(e) => error!("Error sending new_game message: {}", e),
-        };
-    }
+    //     match self.send.clone().unwrap().try_send(nostr_msg) {
+    //         Ok(()) => {}
+    //         Err(e) => error!("Error sending new_game message: {}", e),
+    //     };
+    // }
 
-    pub fn join_game(self) {
-        let msg = NetworkMessage::JoinGame(self.nostr_keys.clone().public_key());
-        let serialized_message = serde_json::to_string(&msg).unwrap();
+    // pub fn join_game(self) {
+    //     let msg = LobbyNetworkMessage::JoinGame(self.nostr_keys.clone().public_key());
+    //     let serialized_message = serde_json::to_string(&msg).unwrap();
 
-        //use nip5 instead?
-        // some relays i have to add nip40 or the message doesnt get cleared from the relay
-        //nip40 Expiration Timestamp https://github.com/nostr-protocol/nips/blob/master/40.md
+    //     //use nip5 instead?
+    //     // some relays i have to add nip40 or the message doesnt get cleared from the relay
+    //     //nip40 Expiration Timestamp https://github.com/nostr-protocol/nips/blob/master/40.md
 
-        let expire = Tag::Expiration(Timestamp::now() + 5_i64);
+    //     let expire = Tag::Expiration(Timestamp::now() + 5_i64);
 
-        let nostr_msg = ClientMessage::event(
-            EventBuilder::new(
-                Kind::Ephemeral(21000),
-                serialized_message,
-                [self.game_tag, expire, Tag::Hashtag("join_game".to_string())],
-            )
-            .to_event(&self.nostr_keys.clone())
-            .unwrap(),
-        );
+    //     let nostr_msg = ClientMessage::event(
+    //         EventBuilder::new(
+    //             Kind::Ephemeral(21000),
+    //             serialized_message,
+    //             [self.game_tag, expire, Tag::Hashtag("join_game".to_string())],
+    //         )
+    //         .to_event(&self.nostr_keys.clone())
+    //         .unwrap(),
+    //     );
 
-        match self.send.clone().unwrap().try_send(nostr_msg) {
-            Ok(()) => {}
-            Err(e) => error!("Error sending join_game message: {}", e),
-        };
-    }
+    //     match self.send.clone().unwrap().try_send(nostr_msg) {
+    //         Ok(()) => {}
+    //         Err(e) => error!("Error sending join_game message: {}", e),
+    //     };
+    // }
 
-    pub fn start_game(self, players: Players) {
-        let msg = NetworkMessage::StartGame(players);
-        let serialized_message = serde_json::to_string(&msg).unwrap();
+    // pub fn start_game(self, players: Players) {
+    //     let msg = GameNetworkMessage::StartGame(players);
+    //     let serialized_message = serde_json::to_string(&msg).unwrap();
 
-        let nostr_msg = ClientMessage::event(
-            EventBuilder::new(
-                Kind::Replaceable(11111),
-                serialized_message,
-                [self.game_tag],
-            )
-            .to_event(&self.nostr_keys)
-            .unwrap(),
-        );
+    //     let nostr_msg = ClientMessage::event(
+    //         EventBuilder::new(
+    //             Kind::Replaceable(11111),
+    //             serialized_message,
+    //             [self.game_tag],
+    //         )
+    //         .to_event(&self.nostr_keys)
+    //         .unwrap(),
+    //     );
 
-        match self.send.clone().unwrap().try_send(nostr_msg) {
-            Ok(()) => {}
-            Err(e) => error!("Error sending start_game message: {}", e),
-        };
-    }
+    //     match self.send.clone().unwrap().try_send(nostr_msg) {
+    //         Ok(()) => {}
+    //         Err(e) => error!("Error sending start_game message: {}", e),
+    //     };
+    // }
 
     pub fn send_input(self, input: usize) {
-        let msg = NetworkMessage::Input(input);
+        let msg = GameNetworkMessage::Input(input);
         let serialized_message = serde_json::to_string(&msg).unwrap();
 
         let nostr_msg = ClientMessage::event(
@@ -215,7 +215,7 @@ impl SendNetMsg {
     }
 
     pub fn send_replay(self) {
-        let msg = NetworkMessage::Replay;
+        let msg = GameNetworkMessage::Replay;
         let serialized_message = serde_json::to_string(&msg).unwrap();
 
         let nostr_msg = ClientMessage::event(

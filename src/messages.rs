@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 pub enum LobbyNetworkMessage {
     NewGame,
     JoinGame,
+    Input(usize),
+    Replay,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
