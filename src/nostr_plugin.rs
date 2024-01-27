@@ -54,7 +54,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
     let (send_tx, send_rx) = futures::channel::mpsc::channel::<String>(1000);
     let (nostr_msg_tx, mut nostr_msg_rx) = futures::channel::mpsc::channel::<ClientMessage>(1000);
 
-    let mut nostr_msg_tx_clone = nostr_msg_tx.clone();
+    let nostr_msg_tx_clone = nostr_msg_tx.clone();
 
     let location = web_sys::window().unwrap().location();
     let tag = location.pathname().unwrap().to_string();
@@ -83,105 +83,108 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
             }
         });
 
-        let filter = Filter::new()
-            // .kinds(vec![Kind::Replaceable(11111), Kind::Ephemeral(21000)])
-            // .until(Timestamp::now())
-            .hashtag(tag.clone());
-
-        let events: Vec<NostrEvent> = client
-            .get_events_of(vec![filter.clone()], Some(Duration::new(10, 0)))
-            .await
-            .unwrap();
-
-        if let Some(last_event) = events.last() {
-            info!("{:#?}", last_event);
-            match serde_json::from_str::<NetworkMessage>(&last_event.content) {
-                Ok(NetworkMessage::NewGame) => {
-                    info!("current tip: new game, sending join game");
-                    let msg = NetworkMessage::JoinGame;
-                    let serialized_message = serde_json::to_string(&msg).unwrap();
-
-                    let nostr_msg = ClientMessage::event(
-                        EventBuilder::new(
-                            Kind::Regular(4444),
-                            serialized_message,
-                            [Tag::Hashtag(tag.clone())],
-                        )
-                        .to_event(&nostr_keys)
-                        .unwrap(),
-                    );
-
-                    match nostr_msg_tx_clone.try_send(nostr_msg) {
-                        Ok(()) => {}
-                        Err(e) => error!("Error sending join_game message: {}", e),
-                    };
-                }
-                Ok(msg) => {
-                    info!("current tip: {:?}", msg);
-                    info!("spectate mode");
-                }
-                Err(error) => {
-                    info!("error: {:?}", error);
-                    info!("spectate mode");
-                }
-            }
-        } else {
-            info!("current tip: no events, sending new game");
-            let msg = NetworkMessage::NewGame;
-            let serialized_message = serde_json::to_string(&msg).unwrap();
-
-            let nostr_msg = ClientMessage::event(
-                EventBuilder::new(
-                    Kind::Regular(4444),
-                    serialized_message,
-                    [Tag::Hashtag(tag.clone())],
-                )
-                .to_event(&nostr_keys)
-                .unwrap(),
-            );
-
-            match nostr_msg_tx_clone.try_send(nostr_msg) {
-                Ok(()) => {}
-                Err(e) => error!("Error sending join_game message: {}", e),
-            };
-        };
-
-        //we match over the buffer and catch up depending on what mode we are in.
-
-        //we then sub to new messages
+        let filter = Filter::new().hashtag(tag.clone());
 
         client.subscribe(vec![filter]).await;
-        info!("hello?   ");
 
-        // if top is input then set to spectate mode
-        // if top is list_game then set to join game mode
-        // if top is join_game then set to spectate mode
-        // if top is zero then set to list game mode
+        let events: Arc<Mutex<Vec<NostrEvent>>> = Arc::new(Mutex::new(vec![]));
+        let nostr_tx = nostr_msg_tx_clone.clone();
+        let stored_events_finished = Arc::new(AtomicBool::new(false));
 
         client
             .handle_notifications(|notification| async {
-                if let RelayPoolNotification::Event { event, relay_url } = notification {
-                    // match serde_json::from_str::<NetworkMessage>(&event.content) {
-                    //     Ok(NetworkMessage::StartGame(players)) => {
-                    //         let new_subscription = Filter::new()
-                    //             .authors(vec![players.player1, players.player2])
-                    //             .kind(Kind::Regular(4444))
-                    //             .hashtag(tag.clone());
+                if let RelayPoolNotification::Message { message, relay_url } = notification {
+                    match message {
+                        nostr_sdk::RelayMessage::EndOfStoredEvents(subid) => {
+                            info!("end of stored events");
+                            let mut events = events.lock().await;
 
-                    //         info!("sub to {:?}", players);
+                            if let Some(last_event) = events.last() {
+                                match serde_json::from_str::<NetworkMessage>(&last_event.content) {
+                                    Ok(NetworkMessage::NewGame) => {
+                                        info!("current tip: {:?}", last_event.content);
+                                        let msg = NetworkMessage::JoinGame;
+                                        let serialized_message =
+                                            serde_json::to_string(&msg).unwrap();
 
-                    //         client.subscribe(vec![new_subscription]).await;
-                    //     }
-                    //     Ok(_) => {}
-                    //     Err(_) => {}
-                    // }
+                                        let nostr_msg = ClientMessage::event(
+                                            EventBuilder::new(
+                                                Kind::Regular(4444),
+                                                serialized_message,
+                                                [Tag::Hashtag(tag.clone())],
+                                            )
+                                            .to_event(&nostr_keys)
+                                            .unwrap(),
+                                        );
 
-                    info!("received game event: {:?}", event);
+                                        match nostr_tx.clone().try_send(nostr_msg) {
+                                            Ok(()) => {}
+                                            Err(e) => {
+                                                error!("Error sending join_game message: {}", e)
+                                            }
+                                        };
+                                    }
+                                    Ok(_) => {
+                                        info!("current tip: {:?}", last_event.content);
+                                        info!("spectate mode");
+                                    }
+                                    Err(error) => {
+                                        info!("error: {:?}", error);
+                                    }
+                                }
+                            } else {
+                                info!("current tip: no events");
+                                let msg = NetworkMessage::NewGame;
+                                let serialized_message = serde_json::to_string(&msg).unwrap();
 
-                    match send_tx.clone().try_send(event.content.clone()) {
-                        Ok(()) => {}
-                        Err(e) => error!("Error sending message: {} CHANNEL FULL???", e),
-                    };
+                                let nostr_msg = ClientMessage::event(
+                                    EventBuilder::new(
+                                        Kind::Regular(4444),
+                                        serialized_message,
+                                        [Tag::Hashtag(tag.clone())],
+                                    )
+                                    .to_event(&nostr_keys)
+                                    .unwrap(),
+                                );
+
+                                match nostr_tx.clone().try_send(nostr_msg) {
+                                    Ok(()) => {}
+                                    Err(e) => {
+                                        error!("Error sending join_game message: {}", e)
+                                    }
+                                };
+                            };
+
+                            for event in events.drain(..) {
+                                info!("processing stored event: {:?}", event);
+                                match send_tx.clone().try_send(event.content.clone()) {
+                                    Ok(()) => {}
+                                    Err(e) => {
+                                        error!("Error sending message: {} CHANNEL FULL???", e)
+                                    }
+                                };
+                            }
+
+                            stored_events_finished.store(true, Ordering::SeqCst);
+                        }
+                        nostr_sdk::RelayMessage::Event {
+                            subscription_id,
+                            event,
+                        } => {
+                            if stored_events_finished.load(Ordering::SeqCst) {
+                                info!("processing new event: {:?}", event);
+                                match send_tx.clone().try_send(event.content.clone()) {
+                                    Ok(()) => {}
+                                    Err(e) => {
+                                        error!("Error sending message: {} CHANNEL FULL???", e)
+                                    }
+                                };
+                            } else {
+                                events.lock().await.push(*event);
+                            }
+                        }
+                        _ => {}
+                    }
                 }
 
                 Ok(false)
