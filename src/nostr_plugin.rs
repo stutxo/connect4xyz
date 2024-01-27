@@ -18,7 +18,7 @@ use wasm_bindgen_futures::spawn_local;
 use crate::{
     components::{CoinMove, ReplayButton},
     gui_plugin::LOGIN_PUBKEY,
-    messages::{GameNetworkMessage, LobbyNetworkMessage, Players},
+    messages::NetworkMessage,
     resources::{Board, NetworkStuff, PlayerMove, SendNetMsg},
     AppState,
 };
@@ -95,10 +95,10 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
 
         if let Some(last_event) = events.last() {
             info!("{:#?}", last_event);
-            match serde_json::from_str::<LobbyNetworkMessage>(&last_event.content) {
-                Ok(LobbyNetworkMessage::NewGame) => {
+            match serde_json::from_str::<NetworkMessage>(&last_event.content) {
+                Ok(NetworkMessage::NewGame) => {
                     info!("current tip: new game, sending join game");
-                    let msg = LobbyNetworkMessage::JoinGame;
+                    let msg = NetworkMessage::JoinGame;
                     let serialized_message = serde_json::to_string(&msg).unwrap();
 
                     let nostr_msg = ClientMessage::event(
@@ -127,7 +127,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
             }
         } else {
             info!("current tip: no events, sending new game");
-            let msg = LobbyNetworkMessage::NewGame;
+            let msg = NetworkMessage::NewGame;
             let serialized_message = serde_json::to_string(&msg).unwrap();
 
             let nostr_msg = ClientMessage::event(
@@ -208,7 +208,7 @@ fn handle_net_msg(
 
     if let Some(ref mut receive_rx) = network_stuff.read {
         while let Ok(Some(message)) = receive_rx.try_next() {
-            match serde_json::from_str::<GameNetworkMessage>(&message) {
+            match serde_json::from_str::<NetworkMessage>(&message) {
                 Ok(network_message) => match network_message {
                     // NetworkMessage::NewGame => {
                     //     if send_net_msg.start {
@@ -249,7 +249,7 @@ fn handle_net_msg(
                     //     send_net_msg.start = true;
                     //     send_net_msg.player_type = 2;
                     // }
-                    GameNetworkMessage::Input(new_input) => {
+                    NetworkMessage::Input(new_input) => {
                         let row_pos = board.moves.iter().filter(|m| m.column == new_input).count();
                         if row_pos <= 5 {
                             let player_move =
@@ -299,7 +299,7 @@ fn handle_net_msg(
                             break;
                         }
                     }
-                    GameNetworkMessage::Replay => {
+                    NetworkMessage::Replay => {
                         *board = Board::new();
                         for entity in coin_query.iter() {
                             commands.entity(entity).despawn();
@@ -308,6 +308,7 @@ fn handle_net_msg(
                             *visibility = Visibility::Hidden;
                         }
                     }
+                    _ => {}
                 },
 
                 Err(e) => {

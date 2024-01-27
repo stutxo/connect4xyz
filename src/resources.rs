@@ -16,7 +16,7 @@ use nostr_sdk::{
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_futures::spawn_local;
 
-use crate::messages::{GameNetworkMessage, LobbyNetworkMessage, Players};
+use crate::messages::NetworkMessage;
 
 #[derive(Resource)]
 pub struct Board {
@@ -199,7 +199,7 @@ impl SendNetMsg {
     // }
 
     pub fn send_input(self, input: usize) {
-        let msg = GameNetworkMessage::Input(input);
+        let msg = NetworkMessage::Input(input);
         let serialized_message = serde_json::to_string(&msg).unwrap();
 
         let nostr_msg = ClientMessage::event(
@@ -215,7 +215,7 @@ impl SendNetMsg {
     }
 
     pub fn send_replay(self) {
-        let msg = GameNetworkMessage::Replay;
+        let msg = NetworkMessage::Replay;
         let serialized_message = serde_json::to_string(&msg).unwrap();
 
         let nostr_msg = ClientMessage::event(
