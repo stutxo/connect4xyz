@@ -626,7 +626,13 @@ pub fn nostr_login(pubkey: String) {
         let nostr_client = Client::new(&my_keys);
 
         #[cfg(target_arch = "wasm32")]
+        nostr_client
+            .add_relay("wss://relay.damus.io")
+            .await
+            .unwrap();
+        #[cfg(target_arch = "wasm32")]
         nostr_client.add_relay("wss://nostr.zbd.gg").await.unwrap();
+
         nostr_client.connect().await;
 
         let pubkey = XOnlyPublicKey::from_str(&pubkey).unwrap();
