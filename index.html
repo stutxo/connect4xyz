@@ -55,11 +55,11 @@
             .top-buttons-container {
                 position: absolute;
                 top: 10px;
-                left: 50%;
+                left: 40%;
                 transform: translateX(-50%);
                 display: flex;
                 justify-content: center;
-                gap: 20px; /* Adjust the space between buttons */
+                gap: 20px;
             }
 
             #homeButton,
@@ -68,24 +68,19 @@
                 cursor: pointer;
                 font-size: 16px;
                 background-color: rgba(255, 255, 255, 0.8);
+                touch-action: manipulation;
             }
 
-            #homeButton:hover,
-            #aboutButton:hover {
-                background-color: rgba(255, 255, 255, 0.9);
-            }
-
-            /* Responsive adjustments */
             @media (max-width: 600px) {
                 .top-buttons-container {
-                    top: 5px;
-                    gap: 5px;
+                    top: 10px;
+                    left: 15%;
+                    transform: translateX(-50%);
                 }
-
-                #homeButton,
-                #aboutButton {
-                    padding: 3px 6px;
-                    font-size: 14px;
+                .github-container {
+                    top: 10px;
+                    left: 90%;
+                    transform: translateX(-50%);
                 }
             }
 
@@ -93,14 +88,43 @@
                 display: none;
                 position: absolute;
                 top: 40px;
-                /* Adjust based on your button's size */
                 left: 40%;
-                /* Align with your button */
                 background-color: #f9f9f9;
                 min-width: 160px;
                 box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
                 padding: 12px 16px;
                 z-index: 1;
+            }
+
+            @media (max-width: 600px) {
+                .dropdown-content {
+                    display: none;
+                    position: absolute;
+                    top: 40px;
+                    left: 5%;
+                    background-color: #f9f9f9;
+                    min-width: 160px;
+                    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+                    padding: 12px 16px;
+                    z-index: 1;
+                }
+            }
+
+            .github-container {
+                position: absolute;
+                top: 10px;
+                left: 60%;
+                transform: translateX(-50%);
+                display: flex;
+                justify-content: center;
+            }
+
+            @media (max-width: 600px) {
+                .github-container {
+                    top: 10px;
+                    left: 90%;
+                    transform: translateX(-50%);
+                }
             }
 
             #UrlContainer {
@@ -155,6 +179,9 @@
         <div class="top-buttons-container">
             <button id="homeButton">🏠</button>
             <button id="aboutButton">ℹ️</button>
+        </div>
+
+        <div class="github-container">
             <a
                 class="github-button"
                 href="https://github.com/stum0/connect4xyz"
