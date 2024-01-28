@@ -25,15 +25,28 @@
                 width: 100%;
                 overflow: hidden;
             }
-            .header-container {
+            .menu-container {
                 position: absolute;
-                top: 5%;
+                top: 20%;
                 left: 50%;
                 transform: translateX(-50%);
                 display: flex;
                 flex-direction: column;
                 align-items: center;
                 gap: 10px;
+            }
+
+            @media (max-width: 800px) {
+                .menu-container {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 10px;
+                }
             }
 
             #titleHeader {
@@ -141,7 +154,7 @@
     </head>
 
     <body>
-        <div class="header-container">
+        <div class="menu-container">
             <div id="LoadingContainer" class="container">
                 <div id="loadingText">Loading...</div>
             </div>
