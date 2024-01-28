@@ -57,9 +57,9 @@
             }
 
             #homeButton,
-            #githubButton,
-            #aboutButton {
-                padding: 5px 10px;
+            #aboutButton,
+            #githubButton {
+                padding: 5px 20px;
                 font-size: 16px;
                 border-radius: 5px;
                 border: none;
@@ -110,10 +110,7 @@
 
     <body>
         <div class="header-container">
-            <h1 id="titleHeader">
-                connect4 over
-                <a href="https://nostr.com" target="_blank">nostr</a>
-            </h1>
+            <h1 id="titleHeader">connect4 over nostr</h1>
 
             <div id="LoadingContainer" class="container">
                 <div id="loadingText">Loading...</div>
@@ -124,14 +121,33 @@
                 <!-- <br /> -->
                 <button id="GuestLogin">login as guest</button>
             </div>
+
+            <div id="NewGameContainer" class="container">
+                <button id="NewGameButton">Create Game 🎲</button>
+            </div>
+
+            <div id="UrlContainer" class="container">
+                <span id="url"></span>
+                <button id="copyButton" onclick="copyToClipboard()">
+                    Share this URL to play 📋
+                </button>
+            </div>
+            <div id="ShareContainer" class="container">
+                <button
+                    id="copyBoardButton"
+                    onclick="copyBoardStateToClipboard()"
+                >
+                    Share result 📋
+                </button>
+            </div>
         </div>
 
         <div class="top-buttons-container">
             <button id="homeButton">🏠</button>
+            <button id="aboutButton">ℹ️</button>
             <button id="githubButton" onclick="goToGitHub()">
                 <i class="fab fa-github"></i>
             </button>
-            <button id="aboutButton">ℹ️</button>
         </div>
         <div id="aboutContent" class="dropdown-content">
             censorship resistant connect4 over the
@@ -143,22 +159,6 @@
             wss://relay.nostrss.re<br />
             wss://nostr.lu.ke<br />
             wss://relay.damus.io
-        </div>
-
-        <div id="NewGameContainer" class="container">
-            <button id="NewGameButton">Create Game 🎲</button>
-        </div>
-
-        <div id="UrlContainer" class="container">
-            <span id="url"></span>
-            <button id="copyButton" onclick="copyToClipboard()">
-                Share this URL to play 📋
-            </button>
-        </div>
-        <div id="ShareContainer" class="container">
-            <button id="copyBoardButton" onclick="copyBoardStateToClipboard()">
-                Share result 📋
-            </button>
         </div>
 
         <script>
