@@ -13,10 +13,8 @@
         <link data-trunk rel="copy-file" href="web_assets/manifest.json" />
         <link data-trunk rel="copy-file" href="./CNAME" />
         <link data-trunk rel="copy-dir" href="./assets/" />
-        <link
-            rel="stylesheet"
-            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css"
-        />
+
+        <script async defer src="https://buttons.github.io/buttons.js"></script>
 
         <style>
             .header-container {
@@ -53,22 +51,18 @@
                 transform: translateX(-50%);
                 display: flex;
                 justify-content: center;
-                gap: 10px; /* Adjust the space between buttons */
+                gap: 20px; /* Adjust the space between buttons */
             }
 
             #homeButton,
-            #aboutButton,
-            #githubButton {
-                padding: 5px 20px;
-                font-size: 16px;
-                border-radius: 5px;
+            #aboutButton {
                 border: none;
                 cursor: pointer;
+                font-size: 17px;
                 background-color: rgba(255, 255, 255, 0.8);
             }
 
             #homeButton:hover,
-            #githubButton:hover,
             #aboutButton:hover {
                 background-color: rgba(255, 255, 255, 0.9);
             }
@@ -81,7 +75,6 @@
                 }
 
                 #homeButton,
-                #githubButton,
                 #aboutButton {
                     padding: 3px 6px;
                     font-size: 14px;
@@ -145,10 +138,14 @@
         <div class="top-buttons-container">
             <button id="homeButton">🏠</button>
             <button id="aboutButton">ℹ️</button>
-            <button id="githubButton" onclick="goToGitHub()">
-                <i class="fab fa-github"></i>
-            </button>
+            <a
+                class="github-button"
+                href="https://github.com/stum0/connect4xyz"
+                data-show-count="true"
+                aria-label="Star stum0/connect4xyz on GitHub"
+            ></a>
         </div>
+
         <div id="aboutContent" class="dropdown-content">
             censorship resistant connect4 over the
             <a href="https://nostr.com" target="_blank">nostr</a> network<br />

@@ -15,8 +15,7 @@ web3 games are bullshit centralised facades.
 
 At least with this game you can play it with zero need to trust a single server, and as long as a nostr relay exists somewhere on the internet, this game will continue to work.
 
-Ofc you have to be honest yourself but this is only really meant for playing with friends, you can cheat at connect4 in real life but it would be a bit weird. :D
-
+Ofc you have to be honest yourself but this is only really meant for playing with friends, you can cheat at connect4 in real life but it would be a bit weird. xD
 
 
 ## Nostr Events Used
