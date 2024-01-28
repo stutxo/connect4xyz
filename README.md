@@ -9,11 +9,15 @@ Anyone is free to host this game themselves, but please dont cheat! :D I am depl
 
 ## Why?
 
+You dont have to pay anything to host this game, and it will never go down, because someone can always host it, or run it locally.
+
 web3 games are bullshit centralised facades.
 
 At least with this game you can play it with zero need to trust a single server, and as long as a nostr relay exists somewhere on the internet, this game will continue to work.
 
 Ofc you have to be honest yourself but this is only really meant for playing with friends, you can cheat at connect4 in real life but it would be a bit weird. :D
+
+
 
 ## Nostr Events Used
 
