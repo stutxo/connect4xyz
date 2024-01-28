@@ -103,6 +103,13 @@
                 z-index: 1;
             }
 
+            #UrlContainer {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 10px;
+            }
+
             #NostrLogin {
                 display: none;
             }
@@ -129,9 +136,11 @@
 
             <div id="UrlContainer" class="container">
                 <span id="url"></span>
-                <button id="copyButton" onclick="copyToClipboard()">
-                    Share this URL to play 📋
-                </button>
+                <div>
+                    <button id="copyButton" onclick="copyToClipboard()">
+                        Share this URL to play 📋
+                    </button>
+                </div>
             </div>
             <div id="ShareContainer" class="container">
                 <button
