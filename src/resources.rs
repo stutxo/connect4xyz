@@ -119,7 +119,6 @@ pub struct SendNetMsg {
 impl SendNetMsg {
     pub fn new() -> Self {
         let nostr_keys = Keys::generate();
-        info!("Nostr Keys Generated {:?}", nostr_keys.public_key());
         Self {
             send: None,
             start: false,
