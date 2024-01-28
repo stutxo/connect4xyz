@@ -1,7 +1,22 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::{
+    str::FromStr,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Mutex,
+    },
+    time::Duration,
+};
 
 use bevy::{asset::AssetMetaCheck, core_pipeline::clear_color::ClearColorConfig, prelude::*};
-use nostr_sdk::serde_json;
+use js_sys::Uint8Array;
+use nostr_sdk::{
+    secp256k1::XOnlyPublicKey, serde_json, Client, Event as NostrEvent, Filter, JsonUtil, Keys,
+    Kind, Metadata,
+};
+use once_cell::sync::Lazy;
+use wasm_bindgen::JsValue;
+use wasm_bindgen_futures::{spawn_local, JsFuture};
+extern crate js_sys;
 
 use crate::{
     components::{CoinMove, CoinSlot, DisplayTurn, ReplayButton, TextChanges, TopRow},
@@ -11,7 +26,7 @@ use crate::{
 
 use nanoid::nanoid;
 
-use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+use wasm_bindgen::prelude::*;
 use web_sys::{window, History};
 
 const COIN_SIZE: Vec2 = Vec2::new(40.0, 40.0);
@@ -19,7 +34,12 @@ const COLUMNS: usize = 7;
 const ROWS: usize = 7;
 const SPACING: f32 = 5.0;
 
-static GREET_CALLED: AtomicBool = AtomicBool::new(false);
+static CEATE_GAME_CALLED: AtomicBool = AtomicBool::new(false);
+static LOGIN_CALLED: AtomicBool = AtomicBool::new(false);
+
+pub static LOGIN_PUBKEY: Lazy<Mutex<Option<String>>> = Lazy::new(|| Mutex::new(None));
+
+// static RESET_CALLED: AtomicBool = AtomicBool::new(false);
 
 pub struct Connect4GuiPlugin;
 
@@ -28,14 +48,40 @@ impl Plugin for Connect4GuiPlugin {
         app.add_state::<AppState>()
             .insert_resource(Board::new())
             .add_systems(Startup, (setup, setup_game))
+            .add_systems(Update, nostr_keys.run_if(in_state(AppState::LogIn)))
             .add_systems(
                 Update,
-                check_greet_called_system.run_if(in_state(AppState::Menu)),
+                (
+                    nostr_keys,
+                    check_new_game_system.run_if(in_state(AppState::Menu)),
+                ),
             )
             .add_systems(
                 Update,
                 (place, move_coin, update_text).run_if(in_state(AppState::InGame)),
             );
+    }
+}
+
+fn nostr_keys(send_net_msg: ResMut<SendNetMsg>, mut next_state: ResMut<NextState<AppState>>) {
+    if send_net_msg.created_game {
+        if LOGIN_CALLED.load(Ordering::SeqCst) {
+            LOGIN_CALLED.store(false, Ordering::SeqCst);
+
+            let window = web_sys::window().unwrap();
+            let event = web_sys::CustomEvent::new("loggedIn").unwrap();
+            window.dispatch_event(&event).unwrap();
+            next_state.set(AppState::Menu);
+        }
+    } else {
+        if LOGIN_CALLED.load(Ordering::SeqCst) {
+            LOGIN_CALLED.store(false, Ordering::SeqCst);
+
+            let window = web_sys::window().unwrap();
+            let event = web_sys::CustomEvent::new("loggedIn").unwrap();
+            window.dispatch_event(&event).unwrap();
+            next_state.set(AppState::InGame);
+        }
     }
 }
 
@@ -53,8 +99,9 @@ fn setup(
 
     #[cfg(target_arch = "wasm32")]
     if is_game_id_present() {
+        next_state.set(AppState::LogIn);
+
         send_net_msg.created_game = false;
-        next_state.set(AppState::InGame);
     }
 }
 
@@ -68,11 +115,8 @@ pub fn is_game_id_present() -> bool {
     false
 }
 
-fn check_greet_called_system(mut next_state: ResMut<NextState<AppState>>) {
-    if GREET_CALLED.load(Ordering::SeqCst) {
-        // Perform the action you want to occur after greet() is called
-        info!("greet() was called!");
-
+fn check_new_game_system(mut next_state: ResMut<NextState<AppState>>) {
+    if CEATE_GAME_CALLED.load(Ordering::SeqCst) {
         let alphabet: [char; 52] = [
             'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q',
             'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
@@ -100,7 +144,7 @@ fn check_greet_called_system(mut next_state: ResMut<NextState<AppState>>) {
         window.dispatch_event(&event).unwrap();
         next_state.set(AppState::InGame);
 
-        GREET_CALLED.store(false, Ordering::SeqCst);
+        CEATE_GAME_CALLED.store(false, Ordering::SeqCst);
     }
 }
 
@@ -181,19 +225,6 @@ fn setup_game(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .insert(TextChanges);
         });
 
-    commands
-        .spawn(SpriteBundle {
-            sprite: Sprite {
-                custom_size: Some(Vec2::new(20.0, 20.0)),
-                ..default()
-            },
-            texture: asset_server.load("repeat.png"),
-            transform: Transform::from_xyz(30.0, 180., 1.0),
-            ..default()
-        })
-        .insert(Visibility::Hidden)
-        .insert(ReplayButton);
-
     let window = web_sys::window().unwrap();
     let event = web_sys::CustomEvent::new("wasmLoaded").unwrap();
     window.dispatch_event(&event).unwrap();
@@ -262,6 +293,7 @@ fn place(
         }
     }
 
+    #[allow(clippy::collapsible_if)]
     if (board.winner.is_some() || board.draw) && send_net_msg.player_type != 3 {
         if board.winner == Some(send_net_msg.player_type) {
             let send_board = board.moves.clone();
@@ -277,45 +309,46 @@ fn place(
             web_sys::window().unwrap().dispatch_event(&event).unwrap();
         }
 
-        for (_, transform, mut visibility) in end_game_buttons.iter_mut() {
-            *visibility = Visibility::Visible;
-            if mouse.just_pressed(MouseButton::Left)
-                || mouse.just_pressed(MouseButton::Right)
-                || touches.iter_just_pressed().any(|_| true)
-            {
-                if let Some(window) = windows.iter().next() {
-                    if let Some(cursor) = window.cursor_position() {
-                        let position = get_position(cursor, window);
+        //     for (_, transform, mut visibility) in end_game_buttons.iter_mut() {
+        //         *visibility = Visibility::Visible;
+        //         if mouse.just_pressed(MouseButton::Left)
+        //             || mouse.just_pressed(MouseButton::Right)
+        //             || touches.iter_just_pressed().any(|_| true)
+        //         {
+        //             if let Some(window) = windows.iter().next() {
+        //                 if let Some(cursor) = window.cursor_position() {
+        //                     let position = get_position(cursor, window);
 
-                        if position.distance(transform.translation.truncate()) < 20.0 {
-                            *board = Board::new();
-                            for entity in coin_query.iter() {
-                                commands.entity(entity).despawn();
-                            }
-                            *visibility = Visibility::Hidden;
-                            send_net_msg.clone().send_replay();
-                            hide_copy_board();
-                            break;
-                        }
-                    }
-                }
-                for touch in touches.iter() {
-                    if let Some(window) = windows.iter().next() {
-                        let position = get_position(touch.position(), window);
-                        if position.distance(transform.translation.truncate()) < 20.0 {
-                            *board = Board::new();
-                            for entity in coin_query.iter() {
-                                commands.entity(entity).despawn();
-                            }
-                            *visibility = Visibility::Hidden;
-                            send_net_msg.clone().send_replay();
-                            hide_copy_board();
-                            break;
-                        }
-                    }
-                }
-            }
-        }
+        //                     if position.distance(transform.translation.truncate()) < 20.0 {
+        //                         *board = Board::new();
+        //                         for entity in coin_query.iter() {
+        //                             commands.entity(entity).despawn();
+        //                         }
+        //                         *visibility = Visibility::Hidden;
+        //                         send_net_msg.clone().send_replay();
+        //                         hide_copy_board();
+        //                         break;
+        //                     }
+        //                 }
+        //             }
+        //             for touch in touches.iter() {
+        //                 if let Some(window) = windows.iter().next() {
+        //                     let position = get_position(touch.position(), window);
+        //                     if position.distance(transform.translation.truncate()) < 20.0 {
+        //                         *board = Board::new();
+        //                         for entity in coin_query.iter() {
+        //                             commands.entity(entity).despawn();
+        //                         }
+        //                         *visibility = Visibility::Hidden;
+        //                         send_net_msg.clone().send_replay();
+        //                         hide_copy_board();
+        //                         break;
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
     }
 
     for (coin, mut sprite, _, mut visibility) in board_pos.iter_mut() {
@@ -475,17 +508,17 @@ fn update_text(
     }
 
     let new_image: Option<&str>;
-    let mut new_text_value: &str;
+    let mut new_text_value: String;
 
     if board.winner.is_some() {
         if board.winner == Some(send_net_msg.player_type) {
-            new_text_value = "You win!!";
+            new_text_value = "You win!!".to_string();
         } else {
-            new_text_value = "You lose!!";
+            new_text_value = "You lose!!".to_string();
         }
 
         if send_net_msg.player_type == 3 {
-            new_text_value = "Game Over!!";
+            new_text_value = "Game Over!!".to_string();
             new_image = match board.winner {
                 Some(1) => Some("red_circle.png"),
                 _ => Some("yellow_circle.png"),
@@ -498,10 +531,10 @@ fn update_text(
             };
         }
     } else if board.draw {
-        new_text_value = "Its a draw!!";
+        new_text_value = "Its a draw!!".to_string();
         new_image = None;
     } else if send_net_msg.player_type == 0 {
-        new_text_value = "Waiting for player to join...";
+        new_text_value = "Waiting for player to join...".to_string();
         new_image = None;
     } else {
         new_image = match board.player_turn {
@@ -511,9 +544,15 @@ fn update_text(
         };
 
         new_text_value = match send_net_msg.player_type {
-            3 => "Spectating",
-            _ if board.player_turn == send_net_msg.player_type => "Its your turn",
-            _ => "Player 2's turn...",
+            3 => "Spectating".to_string(),
+            _ if board.player_turn == send_net_msg.player_type => {
+                let address_display = match &send_net_msg.local_ln_address {
+                    Some(address) => address.clone(),
+                    None => "".to_string(),
+                };
+                format!("Its your turn {}", address_display)
+            }
+            _ => "Player 2's turn...".to_string(),
         };
     }
 
@@ -565,7 +604,63 @@ pub fn hide_copy_board() {
 }
 
 #[wasm_bindgen]
-pub fn greet() {
-    info!("Hello");
-    GREET_CALLED.store(true, Ordering::SeqCst);
+pub fn new_game() {
+    CEATE_GAME_CALLED.store(true, Ordering::SeqCst);
+}
+
+// #[wasm_bindgen]
+// pub fn replay() {
+//     info!("replay called");
+//     RESET_CALLED.store(true, Ordering::SeqCst);
+// }
+
+// #[wasm_bindgen]
+// pub fn nostr_login() {
+//     LOGIN_NOSTR_CALLED.store(true, Ordering::SeqCst);
+// }
+#[wasm_bindgen]
+pub fn nostr_login(pubkey: String) {
+    spawn_local(async move {
+        let pubkey = pubkey.clone();
+        let my_keys: Keys = Keys::generate();
+        let nostr_client = Client::new(&my_keys);
+
+        #[cfg(target_arch = "wasm32")]
+        nostr_client
+            .add_relay("wss://relay.damus.io")
+            .await
+            .unwrap();
+        #[cfg(target_arch = "wasm32")]
+        nostr_client.add_relay("wss://nostr.zbd.gg").await.unwrap();
+
+        nostr_client.connect().await;
+
+        let pubkey = XOnlyPublicKey::from_str(&pubkey).unwrap();
+
+        let filter = Filter::new().author(pubkey).kind(Kind::Metadata).limit(1);
+
+        let events: Vec<NostrEvent> = nostr_client
+            .get_events_of(vec![filter], Some(Duration::new(10, 0)))
+            .await
+            .unwrap();
+        info!("events: {:#?}", events);
+
+        if let Some(event) = events.into_iter().next() {
+            let metadata = Metadata::from_json(event.content.clone()).unwrap();
+
+            let ln_address = metadata.lud16;
+
+            let mut pubkey_storage = LOGIN_PUBKEY.lock().unwrap();
+            *pubkey_storage = Some(ln_address.unwrap());
+        }
+
+        let _ = nostr_client.disconnect().await;
+    });
+
+    LOGIN_CALLED.store(true, Ordering::SeqCst);
+}
+
+#[wasm_bindgen]
+pub fn guest_login() {
+    LOGIN_CALLED.store(true, Ordering::SeqCst);
 }
