@@ -19,18 +19,9 @@
         />
 
         <style>
-            body,
-            html {
-                margin: 0;
-                padding: 0;
-                height: 100%;
-                width: 100%;
-                overflow: hidden;
-            }
-
             .header-container {
                 position: absolute;
-                top: 8%;
+                top: 5%;
                 left: 50%;
                 transform: translateX(-50%);
                 display: flex;
@@ -123,6 +114,11 @@
                 connect4 over
                 <a href="https://nostr.com" target="_blank">nostr</a>
             </h1>
+
+            <div id="LoadingContainer" class="container">
+                <div id="loadingText">Loading...</div>
+            </div>
+
             <div id="LoginContainer" class="container">
                 <button id="NostrLogin">login with nostr<br />(desktop)</button>
                 <!-- <br /> -->
@@ -152,9 +148,7 @@
         <div id="NewGameContainer" class="container">
             <button id="NewGameButton">Create Game 🎲</button>
         </div>
-        <div id="LoadingContainer" class="container">
-            <div id="loadingText">Loading...</div>
-        </div>
+
         <div id="UrlContainer" class="container">
             <span id="url"></span>
             <button id="copyButton" onclick="copyToClipboard()">
