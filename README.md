@@ -12,7 +12,7 @@ Clients connect to relays and check for notes with the tag `connect4.xyz game_id
 
 Players can share this url to invite others to play or spectate.
 
-The first two players in the game will listen to each others pubkey only to avoid shenanigans. All other players who connect will be in spectate mode.
+The first two players in the game will listen to each others pubkey to avoid shenanigans. All other players who connect will be in spectate mode.
 
 ### 1. New Game
 
