@@ -65,11 +65,11 @@
             }
 
             #githubButton {
-                left: 150px;
+                left: 40px;
             }
 
             #aboutButton {
-                left: 200px;
+                left: 80px;
             }
 
             #loadingText {
@@ -81,7 +81,7 @@
                 position: absolute;
                 top: 40px;
                 /* Adjust based on your button's size */
-                left: 210px;
+                left: 80px;
                 /* Align with your button */
                 background-color: #f9f9f9;
                 min-width: 160px;
@@ -93,22 +93,39 @@
     </head>
 
     <body>
+        <h1
+            style="
+                position: absolute;
+                top: 50px;
+                left: 50%;
+                font-size: 20px;
+                transform: translateX(-50%);
+                margin: 0;
+            "
+        >
+            connect4 over nostr
+        </h1>
+
         <div id="LoginContainer" class="container">
-            <button id="NostrLogin">login with nostr</button>
+            <!-- <button id="NostrLogin">login with nostr</button> -->
             <br />
             <button id="GuestLogin">login as guest</button>
         </div>
-        <button id="homeButton">🏠 connect4.xyz</button>
+        <button id="homeButton">🏠</button>
         <button id="githubButton" onclick="goToGitHub()">
             <i class="fab fa-github"></i>
         </button>
         <button id="aboutButton">ℹ️</button>
         <div id="aboutContent" class="dropdown-content">
-            Censorship resistant connect4 over the
+            censorship resistant connect4 over the
             <a href="https://nostr.com" target="_blank">nostr</a> network<br />
+            <br />
             No one can ever stop you playing connect4 ever again!<br /><br />
-            relays: wss://nostr.zbd.gg, wss://relay.nostrss.re,
-            wss://nostr.lu.ke, wss://relay.damus.io
+            relays:<br />
+            wss://nostr.zbd.gg<br />
+            wss://relay.nostrss.re<br />
+            wss://nostr.lu.ke<br />
+            wss://relay.damus.io
         </div>
 
         <div id="NewGameContainer" class="container">
