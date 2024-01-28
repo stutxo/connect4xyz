@@ -28,60 +28,73 @@
                 overflow: hidden;
             }
 
-            #titleHeader {
+            .header-container {
                 position: absolute;
-                top: 50px;
+                top: 8%;
                 left: 50%;
-                font-size: 20px;
                 transform: translateX(-50%);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+
+            #titleHeader {
+                font-size: 20px;
                 margin: 0;
             }
 
             .container {
                 display: flex;
-                flex-direction: column;
+                flex-direction: row;
                 justify-content: center;
-                align-items: center;
+                gap: 10px;
+                padding: 10px;
+                border-radius: 10px;
+                background-color: rgba(255, 255, 255, 0.8);
+                box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.2);
+            }
+
+            .top-buttons-container {
                 position: absolute;
-                bottom: 50%;
+                top: 10px;
                 left: 50%;
                 transform: translateX(-50%);
-                z-index: 10;
-                background-color: rgba(255, 255, 255, 0.8);
-                padding: 20px;
-                border-radius: 10px;
-                box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.2);
+                display: flex;
+                justify-content: center;
+                gap: 10px; /* Adjust the space between buttons */
             }
 
             #homeButton,
             #githubButton,
             #aboutButton {
-                position: absolute;
-                top: 10px;
                 padding: 5px 10px;
                 font-size: 16px;
                 border-radius: 5px;
                 border: none;
                 cursor: pointer;
                 background-color: rgba(255, 255, 255, 0.8);
-                box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.2);
             }
 
             #homeButton:hover,
-            #githubButton:hover {
+            #githubButton:hover,
+            #aboutButton:hover {
                 background-color: rgba(255, 255, 255, 0.9);
             }
 
-            #githubButton {
-                left: 40px;
-            }
+            /* Responsive adjustments */
+            @media (max-width: 600px) {
+                .top-buttons-container {
+                    top: 5px;
+                    gap: 5px;
+                }
 
-            #aboutButton {
-                left: 80px;
-            }
-
-            #loadingText {
-                font-size: 20px;
+                #homeButton,
+                #githubButton,
+                #aboutButton {
+                    padding: 3px 6px;
+                    font-size: 14px;
+                }
             }
 
             .dropdown-content {
@@ -89,7 +102,7 @@
                 position: absolute;
                 top: 40px;
                 /* Adjust based on your button's size */
-                left: 80px;
+                left: 40%;
                 /* Align with your button */
                 background-color: #f9f9f9;
                 min-width: 160px;
@@ -105,20 +118,25 @@
     </head>
 
     <body>
-        <h1 id="titleHeader">
-            connect4 over <a href="https://nostr.com" target="_blank">nostr</a>
-        </h1>
-
-        <div id="LoginContainer" class="container">
-            <button id="NostrLogin">login with nostr<br />(desktop)</button>
-            <!-- <br /> -->
-            <button id="GuestLogin">login as guest</button>
+        <div class="header-container">
+            <h1 id="titleHeader">
+                connect4 over
+                <a href="https://nostr.com" target="_blank">nostr</a>
+            </h1>
+            <div id="LoginContainer" class="container">
+                <button id="NostrLogin">login with nostr<br />(desktop)</button>
+                <!-- <br /> -->
+                <button id="GuestLogin">login as guest</button>
+            </div>
         </div>
-        <button id="homeButton">🏠</button>
-        <button id="githubButton" onclick="goToGitHub()">
-            <i class="fab fa-github"></i>
-        </button>
-        <button id="aboutButton">ℹ️</button>
+
+        <div class="top-buttons-container">
+            <button id="homeButton">🏠</button>
+            <button id="githubButton" onclick="goToGitHub()">
+                <i class="fab fa-github"></i>
+            </button>
+            <button id="aboutButton">ℹ️</button>
+        </div>
         <div id="aboutContent" class="dropdown-content">
             censorship resistant connect4 over the
             <a href="https://nostr.com" target="_blank">nostr</a> network<br />
