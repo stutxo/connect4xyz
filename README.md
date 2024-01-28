@@ -6,6 +6,15 @@ Play Connect4 over `nostr`. https://connect4.xyz
 
 Anyone is free to host this game themselves, but please dont cheat! :D I am deploying to github pages via the docs folder in this repo.
 
+
+## Why?
+
+web3 games are bullshit centralised facades.
+
+At least with this game you can play it with zero need to trust a single server, and as long as a nostr relay exists somewhere on the internet, this game will continue to work.
+
+Ofc you have to be honest yourself but this is only really meant for playing with friends, you can cheat at connect4 in real life but it would be a bit weird. :D
+
 ## Nostr Events Used
 
 Clients connect to relays and check for notes with the tag `connect4.xyz game_id = {}` where game_id is the id of the game, which is randomly generated and added to the URL.
