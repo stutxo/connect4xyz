@@ -3,20 +3,20 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum NetworkMessage {
-    NewGame,
-    JoinGame,
+    NewGame(Option<String>),
+    JoinGame(Players),
     Input(usize),
     Replay,
 }
 
-// #[derive(Serialize, Deserialize, Debug)]
-// pub struct Players {
-//     pub player1: XOnlyPublicKey,
-//     pub player2: XOnlyPublicKey,
-// }
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Players {
+    pub player1: Option<String>,
+    pub player2: Option<String>,
+}
 
-// impl Players {
-//     pub fn new(player1: XOnlyPublicKey, player2: XOnlyPublicKey) -> Self {
-//         Self { player1, player2 }
-//     }
-// }
+impl Players {
+    pub fn new(player1: Option<String>, player2: Option<String>) -> Self {
+        Self { player1, player2 }
+    }
+}

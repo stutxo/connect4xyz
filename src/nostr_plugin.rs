@@ -14,11 +14,11 @@ use nostr_sdk::{
 };
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen_futures::spawn_local;
+use web_sys::window;
 
 use crate::{
     components::{CoinMove, ReplayButton},
-    gui_plugin::LOGIN_PUBKEY,
-    messages::NetworkMessage,
+    messages::{NetworkMessage, Players},
     resources::{Board, NetworkStuff, PlayerMove, SendNetMsg},
     AppState,
 };
@@ -40,8 +40,17 @@ impl Plugin for NostrPlugin {
 }
 
 fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendNetMsg>) {
-    if let Some(pubkey) = LOGIN_PUBKEY.lock().expect("Mutex is poisoned").as_ref() {
-        send_net_msg.local_ln_address = Some(pubkey.clone());
+    let window = window().expect("no global `window` exists");
+    let local_storage = window
+        .local_storage()
+        .expect("no local storage")
+        .expect("local storage is not available");
+
+    if let Ok(Some(username)) = local_storage.get_item("username") {
+        send_net_msg.local_ln_address = Some(username.clone());
+        info!("username found in local storage {:?}", username)
+    } else {
+        info!("no username found in local storage")
     }
 
     let (send_tx, send_rx) = futures::channel::mpsc::channel::<String>(1000);
@@ -55,6 +64,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
     send_net_msg.game_tag = Tag::Hashtag(tag.clone());
 
     let send_net_msg_clone = send_net_msg.clone();
+    let send_net_msg_clone_2 = send_net_msg.clone();
 
     network_stuff.read = Some(send_rx);
     send_net_msg.send = Some(nostr_msg_tx);
@@ -97,9 +107,16 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
 
         if let Some(last_event) = events.last() {
             match serde_json::from_str::<NetworkMessage>(&last_event.content) {
-                Ok(NetworkMessage::NewGame) => {
+                Ok(NetworkMessage::NewGame(player)) => {
                     info!("current tip: {:?}", last_event.content);
-                    let msg = NetworkMessage::JoinGame;
+
+                    let players = if send_net_msg_clone_2.local_ln_address.is_none() {
+                        Players::new(player, None)
+                    } else {
+                        Players::new(player, send_net_msg_clone_2.local_ln_address.clone())
+                    };
+
+                    let msg = NetworkMessage::JoinGame(players);
                     let serialized_message = serde_json::to_string(&msg).unwrap();
 
                     let nostr_msg = ClientMessage::event(
@@ -132,7 +149,12 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
             }
         } else {
             info!("current tip: no events");
-            let msg = NetworkMessage::NewGame;
+            let msg = if send_net_msg_clone_2.local_ln_address.is_none() {
+                NetworkMessage::NewGame(None)
+            } else {
+                NetworkMessage::NewGame(send_net_msg_clone_2.local_ln_address.clone())
+            };
+
             let serialized_message = serde_json::to_string(&msg).unwrap();
 
             let nostr_msg = ClientMessage::event(
@@ -296,19 +318,23 @@ fn handle_net_msg(
                             *visibility = Visibility::Hidden;
                         }
                     }
-                    NetworkMessage::JoinGame => {
+                    NetworkMessage::JoinGame(game_info) => {
                         if send_net_msg.start {
                             continue;
                         }
+
+                        send_net_msg.p2_ln_address = game_info.player2;
                         //recevied message from p2 so you must be p1
                         send_net_msg.player_type = 1;
                         info!("player type: 1");
                         send_net_msg.start = true;
                     }
-                    NetworkMessage::NewGame => {
+                    NetworkMessage::NewGame(player1) => {
                         if send_net_msg.start {
                             continue;
                         }
+
+                        send_net_msg.p2_ln_address = player1;
                         //recevied message from p1 so you must be p2
                         send_net_msg.player_type = 2;
                         info!("player type: 2");

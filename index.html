@@ -147,9 +147,9 @@
                 padding: 10px;
             }
 
-            #NostrLogin {
+            /* #NostrLogin {
                 display: none;
-            }
+            } */
         </style>
     </head>
 
@@ -184,6 +184,9 @@
                 >
                     Share result 📋
                 </button>
+                <button id="postNostrButton" onclick="postToNostr()">
+                    Post to Nostr
+                </button>
             </div>
         </div>
 
@@ -214,11 +217,20 @@
             wss://nostr.lu.ke<br />
             wss://relay.damus.io
         </div>
-
+        <script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js"></script>
         <script>
             hideButtons();
 
             let currentBoardState = "";
+
+            document
+                .getElementById("aboutButton")
+                .addEventListener("click", function (event) {
+                    var dropdown = document.getElementById("aboutContent");
+                    dropdown.style.display =
+                        dropdown.style.display === "block" ? "none" : "block";
+                    event.stopPropagation();
+                });
 
             document
                 .getElementById("homeButton")
@@ -234,6 +246,76 @@
                     dropdown.style.display = "none";
                 }
             });
+
+            document
+                .getElementById("NostrLogin")
+                .addEventListener("click", function () {
+                    let storedPubKey = localStorage.getItem("pubkey");
+                    if (window.nostr) {
+                        if (storedPubKey) {
+                            console.log(
+                                "Public key from localStorage:",
+                                storedPubKey,
+                            );
+                            const storedUserName =
+                                localStorage.getItem("username");
+                            if (!storedUserName) {
+                                window.nostr
+                                    .getRelays()
+                                    .then((relays) => {
+                                        console.log("Relays:", relays);
+
+                                        console.error(
+                                            "No username found in local storage.",
+                                        );
+                                        let relay = Object.keys(relays)[0];
+                                        console.log(relay);
+                                        fetchUsername(storedPubKey, relay);
+                                    })
+                                    .catch((error) => {
+                                        console.error(
+                                            "Error fetching relays:",
+                                            error,
+                                        );
+                                    });
+                            }
+                            console.log(
+                                "Username from localStorage:",
+                                storedUserName,
+                            );
+                        } else {
+                            window.nostr
+                                .getPublicKey()
+                                .then((pubkey) => {
+                                    localStorage.setItem("pubkey", pubkey);
+                                    console.log("Public key fetched:", pubkey);
+                                    window.nostr
+                                        .getRelays()
+                                        .then((relays) => {
+                                            console.log("Relays:", relays);
+                                            let relay = Object.keys(relays)[0];
+                                            fetchUsername(pubkey, relay);
+                                        })
+                                        .catch((error) => {
+                                            console.error(
+                                                "Error fetching public key:",
+                                                error,
+                                            );
+                                        });
+                                })
+                                .catch((error) => {
+                                    console.error(
+                                        "Error fetching public key:",
+                                        error,
+                                    );
+                                });
+                        }
+                    } else {
+                        console.log(
+                            "Nostr extension is not installed and no public key in localStorage.",
+                        );
+                    }
+                });
 
             //event listeners
 
@@ -315,7 +397,7 @@
                     }
                 });
 
-                let gridString = "I won at connect4.xyz\n\n";
+                let gridString = "I beat @stuu at connect4.xyz\n\n";
 
                 for (let r = rows - 1; r >= 0; r--) {
                     for (let c = 0; c < columns; c++) {
@@ -377,14 +459,135 @@
                 document.getElementById("UrlContainer").style.display = "flex";
             }
 
-            document
-                .getElementById("aboutButton")
-                .addEventListener("click", function (event) {
-                    var dropdown = document.getElementById("aboutContent");
-                    dropdown.style.display =
-                        dropdown.style.display === "block" ? "none" : "block";
-                    event.stopPropagation();
+            async function postToNostr() {
+                let pubkey = localStorage.getItem("pubkey");
+
+                let template = {
+                    kind: 1,
+                    pubkey: pubkey,
+                    content: currentBoardState,
+                    tags: [["r", window.location.href]],
+                    created_at: Math.floor(Date.now() / 1000),
+                };
+
+                template.id = await getEventHash(template);
+
+                let resolved = false;
+
+                console.log(template);
+
+                window.nostr.signEvent(template).then(function (event) {
+                    sendMessage("wss://relay.noswhere.com", ["EVENT", event], {
+                        onMessage: function (ws, message) {
+                            if (message[0] === "OK") {
+                                if (!message[2]) {
+                                    alert("Failed to publish your event!");
+                                }
+
+                                resolved = true;
+                                hideModal();
+                            }
+                        },
+                        onTimeout: function () {
+                            if (!resolved) {
+                                alert("Failed to publish your event!");
+                            }
+
+                            hideModal();
+                        },
+                    });
                 });
+            }
+
+            function fetchUsername(pubkey, relay, cb) {
+                const filter = { kinds: [0], authors: [pubkey] };
+                const req = ["REQ", "username", filter];
+
+                let resolved = false;
+
+                sendMessage(pubkey, relay || "wss://nostr.zdb.gg", req, {
+                    onMessage: function (ws, message) {
+                        if (message[0] === "EVENT") {
+                            const content = JSON.parse(message[2].content);
+
+                            console.log("content", content);
+
+                            const username = content.lud16 || content.name;
+                            localStorage.setItem("username", username);
+                            resolved = true;
+
+                            console.log("username set", username);
+
+                            if (cb) {
+                                cb();
+                            }
+                        }
+                    },
+                    onTimeout: function () {
+                        if (!resolved && cb) {
+                            cb();
+                        }
+                    },
+                });
+            }
+
+            function sendMessage(
+                pubkey,
+                url,
+                message,
+                { onMessage, onTimeout },
+            ) {
+                const ws = new WebSocket(url);
+
+                ws.onopen = function () {
+                    const filter = { kinds: [0], authors: [pubkey] };
+
+                    ws.send(JSON.stringify(message));
+                };
+
+                ws.onmessage = function (e) {
+                    try {
+                        const message = JSON.parse(e.data);
+
+                        if (Array.isArray(message)) {
+                            onMessage(ws, message);
+                        }
+                    } catch (e) {
+                        // pass
+                    }
+                };
+
+                setTimeout(function () {
+                    ws.close();
+                    onTimeout(ws);
+                }, 30_000);
+            }
+
+            function getEventHash(e) {
+                return sha256(
+                    JSON.stringify([
+                        0,
+                        e.pubkey,
+                        e.created_at,
+                        e.kind,
+                        e.tags,
+                        e.content,
+                    ]),
+                );
+            }
+
+            async function sha256(input) {
+                const textAsBuffer = new TextEncoder().encode(input);
+                const hashBuffer = await crypto.subtle.digest(
+                    "SHA-256",
+                    textAsBuffer,
+                );
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+
+                return hashArray
+                    .map((item) => item.toString(16).padStart(2, "0"))
+                    .join("");
+            }
         </script>
     </body>
 </html>

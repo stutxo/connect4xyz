@@ -37,8 +37,6 @@ const SPACING: f32 = 5.0;
 static CEATE_GAME_CALLED: AtomicBool = AtomicBool::new(false);
 static LOGIN_CALLED: AtomicBool = AtomicBool::new(false);
 
-pub static LOGIN_PUBKEY: Lazy<Mutex<Option<String>>> = Lazy::new(|| Mutex::new(None));
-
 // static RESET_CALLED: AtomicBool = AtomicBool::new(false);
 
 pub struct Connect4GuiPlugin;
@@ -510,9 +508,25 @@ fn update_text(
 
     if board.winner.is_some() {
         if board.winner == Some(send_net_msg.player_type) {
-            new_text_value = "You win!!".to_string();
+            let address_display = match &send_net_msg.local_ln_address {
+                Some(address) => address.clone(),
+                None => "You".to_string(),
+            };
+            let enemy_display = match &send_net_msg.p2_ln_address {
+                Some(enemy) => enemy.clone(),
+                None => "Player 2".to_string(),
+            };
+            new_text_value = format!("{} defeated {}", address_display, enemy_display);
         } else {
-            new_text_value = "You lose!!".to_string();
+            let address_display = match &send_net_msg.local_ln_address {
+                Some(address) => address.clone(),
+                None => "You".to_string(),
+            };
+            let enemy_display = match &send_net_msg.p2_ln_address {
+                Some(enemy) => enemy.clone(),
+                None => "Player 2".to_string(),
+            };
+            new_text_value = format!("{} lost to {}", address_display, enemy_display);
         }
 
         if send_net_msg.player_type == 3 {
@@ -529,7 +543,15 @@ fn update_text(
             };
         }
     } else if board.draw {
-        new_text_value = "Its a draw!!".to_string();
+        let address_display = match &send_net_msg.local_ln_address {
+            Some(address) => address.clone(),
+            None => "You".to_string(),
+        };
+        let enemy_display = match &send_net_msg.p2_ln_address {
+            Some(enemy) => enemy.clone(),
+            None => "Player 2".to_string(),
+        };
+        new_text_value = format!("{} drew against {}", address_display, enemy_display);
         new_image = None;
     } else if send_net_msg.player_type == 0 {
         new_text_value = "Waiting for player to join...".to_string();
@@ -550,7 +572,13 @@ fn update_text(
                 };
                 format!("Its your turn {}", address_display)
             }
-            _ => "Player 2's turn...".to_string(),
+            _ => {
+                let address_display = match &send_net_msg.p2_ln_address {
+                    Some(address) => address.clone(),
+                    None => "Player 2".to_string(),
+                };
+                format!("{}'s turn", address_display)
+            }
         };
     }
 
@@ -605,60 +633,13 @@ pub fn hide_copy_board() {
 pub fn new_game() {
     CEATE_GAME_CALLED.store(true, Ordering::SeqCst);
 }
+#[wasm_bindgen]
+pub fn login() {
+    LOGIN_CALLED.store(true, Ordering::SeqCst);
+}
 
 // #[wasm_bindgen]
 // pub fn replay() {
 //     info!("replay called");
 //     RESET_CALLED.store(true, Ordering::SeqCst);
 // }
-
-// #[wasm_bindgen]
-// pub fn nostr_login() {
-//     LOGIN_NOSTR_CALLED.store(true, Ordering::SeqCst);
-// }
-#[wasm_bindgen]
-pub fn nostr_login(pubkey: String) {
-    spawn_local(async move {
-        let pubkey = pubkey.clone();
-        let my_keys: Keys = Keys::generate();
-        let nostr_client = Client::new(&my_keys);
-
-        #[cfg(target_arch = "wasm32")]
-        nostr_client
-            .add_relay("wss://relay.damus.io")
-            .await
-            .unwrap();
-        #[cfg(target_arch = "wasm32")]
-        nostr_client.add_relay("wss://nostr.zbd.gg").await.unwrap();
-
-        nostr_client.connect().await;
-
-        let pubkey = XOnlyPublicKey::from_str(&pubkey).unwrap();
-
-        let filter = Filter::new().author(pubkey).kind(Kind::Metadata).limit(1);
-
-        let events: Vec<NostrEvent> = nostr_client
-            .get_events_of(vec![filter], Some(Duration::new(10, 0)))
-            .await
-            .unwrap();
-        info!("events: {:#?}", events);
-
-        if let Some(event) = events.into_iter().next() {
-            let metadata = Metadata::from_json(event.content.clone()).unwrap();
-
-            let ln_address = metadata.lud16;
-
-            let mut pubkey_storage = LOGIN_PUBKEY.lock().unwrap();
-            *pubkey_storage = Some(ln_address.unwrap());
-        }
-
-        let _ = nostr_client.disconnect().await;
-    });
-
-    LOGIN_CALLED.store(true, Ordering::SeqCst);
-}
-
-#[wasm_bindgen]
-pub fn guest_login() {
-    LOGIN_CALLED.store(true, Ordering::SeqCst);
-}
