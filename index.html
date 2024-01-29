@@ -382,8 +382,9 @@
                     });
             }
 
-            function createConnectFourGrid(movesString) {
-                const moves = JSON.parse(movesString);
+            function createConnectFourGrid(shareData) {
+                const share_data = JSON.parse(shareData);
+                const moves = share_data.moves;
                 const rows = 6;
                 const columns = 7;
                 let grid = new Array(rows);
@@ -397,7 +398,7 @@
                     }
                 });
 
-                let gridString = "I beat @stuu at connect4.xyz\n\n";
+                let gridString = share_data.msg;
 
                 for (let r = rows - 1; r >= 0; r--) {
                     for (let c = 0; c < columns; c++) {

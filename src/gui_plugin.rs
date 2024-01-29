@@ -14,6 +14,7 @@ use nostr_sdk::{
     Kind, Metadata,
 };
 use once_cell::sync::Lazy;
+use serde::Serialize;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::{spawn_local, JsFuture};
 extern crate js_sys;
@@ -38,6 +39,12 @@ static CEATE_GAME_CALLED: AtomicBool = AtomicBool::new(false);
 static LOGIN_CALLED: AtomicBool = AtomicBool::new(false);
 
 // static RESET_CALLED: AtomicBool = AtomicBool::new(false);
+
+#[derive(Serialize)]
+struct ShareData {
+    msg: String,
+    moves: Vec<PlayerMove>,
+}
 
 pub struct Connect4GuiPlugin;
 
@@ -292,8 +299,18 @@ fn place(
     #[allow(clippy::collapsible_if)]
     if (board.winner.is_some() || board.draw) && send_net_msg.player_type != 3 {
         if board.winner == Some(send_net_msg.player_type) {
-            let send_board = board.moves.clone();
-            let send_board = serde_json::to_string(&send_board).unwrap();
+            let msg = if let Some(ref address) = send_net_msg.p2_ln_address {
+                format!("I beat {} at connect4.xyz\n\n", address)
+            } else {
+                "I beat an unknown player at connect4.xyz\n\n".to_string()
+            };
+
+            let share_data = ShareData {
+                msg,
+                moves: board.moves.clone(),
+            };
+
+            let send_board = serde_json::to_string(&share_data).unwrap();
 
             let mut event_init = web_sys::CustomEventInit::new();
 
