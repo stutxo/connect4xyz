@@ -1,0 +1,406 @@
+<!doctype html><html lang=en><meta charset=UTF-8><meta content="IE=edge" http-equiv=X-UA-Compatible><meta content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" name=viewport><title>connect4.xyz</title><script type=module>import init, { new_game, login } from './connect4xyz-5ce75ea10f58237e.js'; init('./connect4xyz-5ce75ea10f58237e_bg.wasm'); document.addEventListener('DOMContentLoaded', () => { document.getElementById('NewGameButton').addEventListener('click', () => { new_game(); }); document.getElementById('NostrLogin').addEventListener('click', async e => { e.preventDefault(); let nostr = await window.nostr; nostr ? login() : alert('Please install a Nostr extension.'); }); document.getElementById('GuestLogin').addEventListener('click', () => { login(); localStorage.clear(); }); });</script><link href=./favicon-62f8607a7e9954c.ico integrity=sha384-vRtMBXgD1hNxxhineEpgcLDnlUNIk3AGT2GbjTSNeh0B2Eecd2g7Qb_timlQOfyx rel=icon><script async defer src=https://buttons.github.io/buttons.js></script><style>body,html{width:100%;height:100%;margin:0;padding:0;overflow:hidden}.menu-container{flex-direction:column;align-items:center;gap:10px;display:flex;position:absolute;top:15%;left:50%;transform:translate(-50%)}@media (width<=800px){.menu-container{flex-direction:column;align-items:center;gap:10px;display:flex;position:absolute;top:50%;left:50%;transform:translate(-50%)}}.container{background-color:#fffc;border-radius:10px;flex-direction:column;justify-content:center;gap:10px;padding:10px;display:flex;box-shadow:0 2px 10px #0003}#titleHeader{margin:0;font-size:15px;display:flex;position:absolute;top:1%;left:50%;transform:translate(-50%)}.top-buttons-container{justify-content:center;gap:10px;display:flex;position:absolute;top:10px;left:40%;transform:translate(-50%)}#homeButton,#aboutButton{cursor:pointer;touch-action:manipulation;background-color:#fffc;border:none;font-size:16px}@media (width<=800px){.top-buttons-container{top:10px;left:15%;transform:translate(-50%)}}.dropdown-content{z-index:1;background-color:#f9f9f9;min-width:160px;padding:12px 16px;display:none;position:absolute;top:40px;left:40%;box-shadow:0 8px 16px #0003}@media (width<=800px){.dropdown-content{z-index:1;background-color:#f9f9f9;min-width:160px;padding:12px 16px;display:none;position:absolute;top:40px;left:5%;box-shadow:0 8px 16px #0003}}.github-container{justify-content:center;display:flex;position:absolute;top:10px;left:60%;transform:translate(-50%)}@media (width<=800px){.github-container{top:10px;left:90%;transform:translate(-50%)}}#UrlContainer{flex-direction:column;align-items:flex-start;padding:10px;display:flex}#LoginContainer,#ShareContainer,#NewGameContainer,#UrlContainer{display:none}</style><link as=fetch crossorigin href=./connect4xyz-5ce75ea10f58237e_bg.wasm integrity=sha384-y_2YlEXHEnvObldrEpWgMfPEwbw46EZccMF5tQyCAGuWmkGqt9CF5ZivUc_ZS10T rel=preload type=application/wasm><link crossorigin href=./connect4xyz-5ce75ea10f58237e.js integrity=sha384-z6RolV8gwABVb-7bNjKRSv67GMw9S4QJw7nr_ChkdaBIVU5JLllXSSZ5HEUkg5hA rel=modulepreload></head><body><div class=menu-container><div class=container id=LoadingContainer><div id=loadingText>Loading...</div></div><div class=container id=LoginContainer><button id=LogoutButton style=display:none>Logout</button><button id=NostrLogin>login with nostr<br>(desktop)</button><button id=GuestLogin>login as guest</button></div><div class=container id=NewGameContainer><button id=NewGameButton>Create Game 🎲</button></div><div class=container id=UrlContainer><span id=url></span><div><button id=copyButton onclick=copyToClipboard()>Share this URL to play 📋</button></div></div><div class=container id=ShareContainer><button id=copyBoardButton onclick=copyBoardStateToClipboard()>Share result 📋</button><button id=postNostrButton onclick=postToNostr()>Post to Nostr</button></div></div><h1 id=titleHeader>connect4 over nostr</h1><div class=top-buttons-container><button id=homeButton>🏠</button><button id=aboutButton>ℹ️</button></div><div class=github-container><a aria-label="Star stum0/connect4xyz on GitHub" class=github-button data-show-count=true href=https://github.com/stum0/connect4xyz></a></div><div class=dropdown-content id=aboutContent>censorship resistant connect4 over the <a href=https://nostr.com target=_blank>nostr</a> network<br><br> no one can ever stop you playing connect4 ever again!<br><br> relays:<br> wss://relay.nostrss.re<br> wss://nostr.lu.ke</div><script src=https://unpkg.com/nostr-tools/lib/nostr.bundle.js></script><script>const storedUserName = localStorage.getItem("username");
+
+            // const loginHeader = document.getElementById("loggedinHeader");
+
+            // loginHeader.textContent = storedUserName ? `${storedUserName}` : "";
+
+            let currentBoardState = "";
+
+            // document.addEventListener("DOMContentLoaded", function () {
+            //     const storedUserName = localStorage.getItem("username");
+            //     const isRootPath = window.location.pathname === "/"; // Check if the path is root
+
+            //     if (storedUserName && isRootPath) {
+            //         // Hide login buttons only if a user is stored and the path is root
+            //         document.getElementById("NostrLogin").style.display =
+            //             "none";
+            //         document.getElementById("GuestLogin").style.display =
+            //             "none";
+            //         document.getElementById("LogoutButton").style.display =
+            //             "block";
+            //         console.log(`Logged in as: ${storedUserName}`);
+            //     } else {
+            //         // Show login buttons
+            //         document.getElementById("NostrLogin").style.display =
+            //             "block";
+            //         document.getElementById("GuestLogin").style.display =
+            //             "block";
+            //     }
+
+            //     document
+            //         .getElementById("LogoutButton")
+            //         .addEventListener("click", function () {
+            //             localStorage.clear();
+            //             window.location.reload();
+            //         });
+            // });
+
+            document
+                .getElementById("aboutButton")
+                .addEventListener("click", function (event) {
+                    var dropdown = document.getElementById("aboutContent");
+                    dropdown.style.display =
+                        dropdown.style.display === "block" ? "none" : "block";
+                    event.stopPropagation();
+                });
+
+            document
+                .getElementById("homeButton")
+                .addEventListener("click", function () {
+                    window.location.href = window.location.origin;
+                });
+
+            document.getElementById("url").textContent = window.location.href;
+
+            document.addEventListener("click", function () {
+                var dropdown = document.getElementById("aboutContent");
+                if (dropdown.style.display === "block") {
+                    dropdown.style.display = "none";
+                }
+            });
+
+            document
+                .getElementById("NostrLogin")
+                .addEventListener("click", function () {
+                    let storedPubKey = localStorage.getItem("pubkey");
+                    if (window.nostr) {
+                        if (storedPubKey) {
+                            console.log(
+                                "Public key from localStorage:",
+                                storedPubKey,
+                            );
+                            const storedUserName =
+                                localStorage.getItem("username");
+                            if (!storedUserName) {
+                                window.nostr
+                                    .getRelays()
+                                    .then((relays) => {
+                                        console.log("Relays:", relays);
+
+                                        console.error(
+                                            "No username found in local storage.",
+                                        );
+                                        let relay = Object.keys(relays)[0];
+                                        console.log(relay);
+                                        fetchUsername(storedPubKey, relay);
+                                    })
+                                    .catch((error) => {
+                                        console.error(
+                                            "Error fetching relays:",
+                                            error,
+                                        );
+                                    });
+                            }
+                            console.log(
+                                "Username from localStorage:",
+                                storedUserName,
+                            );
+                        } else {
+                            window.nostr
+                                .getPublicKey()
+                                .then((pubkey) => {
+                                    localStorage.setItem("pubkey", pubkey);
+                                    console.log("Public key fetched:", pubkey);
+                                    window.nostr
+                                        .getRelays()
+                                        .then((relays) => {
+                                            console.log("Relays:", relays);
+                                            let relay = Object.keys(relays)[0];
+                                            fetchUsername(pubkey, relay);
+                                        })
+                                        .catch((error) => {
+                                            console.error(
+                                                "Error fetching public key:",
+                                                error,
+                                            );
+                                        });
+                                })
+                                .catch((error) => {
+                                    console.error(
+                                        "Error fetching public key:",
+                                        error,
+                                    );
+                                });
+                        }
+                    } else {
+                        console.log(
+                            "Nostr extension is not installed and no public key in localStorage.",
+                        );
+                    }
+                });
+
+            //event listeners
+
+            window.addEventListener("urlChanged", () => {
+                displayShareButton();
+            });
+
+            window.addEventListener("wasmLoaded", () => {
+                hideLoading();
+                showLoginButton();
+            });
+
+            window.addEventListener("loggedIn", () => {
+                showNewGameButton();
+                hideLoginButton();
+            });
+
+            window.addEventListener("send_board", (event) => {
+                const board = event.detail;
+                currentBoardState = createConnectFourGrid(board);
+                showCopyBoardButton();
+            });
+
+            //functions
+
+            function goToGitHub() {
+                window.location.href = "https://github.com/stum0/connect4xyz";
+            }
+
+            function copyBoardStateToClipboard() {
+                navigator.clipboard
+                    .writeText(currentBoardState)
+                    .then(() => {
+                        const copyButton =
+                            document.getElementById("copyBoardButton");
+                        copyButton.textContent = "Copied! 🎉";
+                        setTimeout(() => {
+                            copyButton.textContent = "Share result 📋";
+                        }, 3000);
+                    })
+                    .catch((err) => {
+                        console.error("Failed to copy board state:", err);
+                        document.getElementById("copyBoardButton").textContent =
+                            "Failed to copy! ❌";
+                    });
+            }
+
+            function copyToClipboard() {
+                navigator.clipboard
+                    .writeText(window.location.href)
+                    .then(() => {
+                        const copyButton =
+                            document.getElementById("copyButton");
+                        copyButton.textContent = "Copied URL!";
+                        setTimeout(() => {
+                            copyButton.textContent =
+                                "Share this URL to play 📋";
+                        }, 3000);
+                    })
+                    .catch((err) => {
+                        console.error("Failed to copy board state:", err);
+                        document.getElementById("copyButton").textContent =
+                            "Failed to copy! ❌";
+                    });
+            }
+
+            function createConnectFourGrid(shareData) {
+                const share_data = JSON.parse(shareData);
+                const moves = share_data.moves;
+                const rows = 6;
+                const columns = 7;
+                let grid = new Array(rows);
+                for (let i = 0; i < rows; i++) {
+                    grid[i] = new Array(columns).fill(0);
+                }
+
+                moves.forEach((move) => {
+                    if (grid[move.row][move.column] === 0) {
+                        grid[move.row][move.column] = move.player;
+                    }
+                });
+
+                let gridString = share_data.msg;
+
+                for (let r = rows - 1; r >= 0; r--) {
+                    for (let c = 0; c < columns; c++) {
+                        if (grid[r][c] === 1) {
+                            gridString += "🔴";
+                        } else if (grid[r][c] === 2) {
+                            gridString += "🟡";
+                        } else {
+                            gridString += "⚪";
+                        }
+                    }
+                    gridString += "\n";
+                }
+
+                return gridString;
+            }
+
+            function showCopyBoardButton() {
+                document.getElementById("ShareContainer").style.display =
+                    "flex";
+            }
+            function showLoginButton() {
+                document.getElementById("LoginContainer").style.display =
+                    "flex";
+            }
+            function showNewGameButton() {
+                document.getElementById("NewGameContainer").style.display =
+                    "flex";
+            }
+            function hideNewGameButton() {
+                document.getElementById("NewGameContainer").style.display =
+                    "none";
+            }
+            function hideCopyButton() {
+                document.getElementById("UrlContainer").style.display = "none";
+            }
+            function hideLoading() {
+                document.getElementById("LoadingContainer").style.display =
+                    "none";
+            }
+            function hideLoginButton() {
+                document.getElementById("LoginContainer").style.display =
+                    "none";
+            }
+            function displayShareButton() {
+                const currentUrl = window.location.href;
+                const locationPath = window.location.pathname;
+
+                document.getElementById("url").textContent = currentUrl;
+                document.getElementById("UrlContainer").style.display = "flex";
+            }
+
+            async function postToNostr() {
+                let pubkey = localStorage.getItem("pubkey");
+
+                let template = {
+                    kind: 1,
+                    pubkey: pubkey,
+                    content: currentBoardState,
+                    tags: [["r", window.location.href]],
+                    created_at: Math.floor(Date.now() / 1000),
+                };
+
+                template.id = await getEventHash(template);
+
+                let resolved = false;
+
+                console.log(template);
+
+                const nostrPostButton =
+                    document.getElementById("postNostrButton");
+                nostrPostButton.textContent = "Posted to Nostr! 🎉";
+                nostrPostButton.disabled = true;
+                setTimeout(() => {
+                    nostrPostButton.textContent = "Post to Nostr";
+                }, 3000);
+
+                window.nostr.signEvent(template).then(function (event) {
+                    sendMessage("wss://relay.noswhere.com", ["EVENT", event], {
+                        onMessage: function (ws, message) {
+                            if (message[0] === "OK") {
+                                if (!message[2]) {
+                                    alert("Failed to publish your event!");
+                                }
+
+                                resolved = true;
+                                hideModal();
+                            }
+                        },
+                        onTimeout: function () {
+                            if (!resolved) {
+                                alert("Failed to publish your event!");
+                            }
+
+                            hideModal();
+                        },
+                    });
+                });
+            }
+
+            function fetchUsername(pubkey, relay, cb) {
+                const filter = { kinds: [0], authors: [pubkey] };
+                const req = ["REQ", "username", filter];
+
+                let resolved = false;
+
+                sendMessage(pubkey, relay || "wss://nostr.zdb.gg", req, {
+                    onMessage: function (ws, message) {
+                        if (message[0] === "EVENT") {
+                            const content = JSON.parse(message[2].content);
+
+                            console.log("content", content);
+
+                            const username = content.lud16 || content.name;
+                            localStorage.setItem("username", username);
+                            // const loginHeader =
+                            //     document.getElementById("loggedinHeader");
+
+                            // loginHeader.textContent = username;
+                            resolved = true;
+
+                            console.log("username set", username);
+
+                            if (cb) {
+                                cb();
+                            }
+                        }
+                    },
+                    onTimeout: function () {
+                        if (!resolved && cb) {
+                            cb();
+                        }
+                    },
+                });
+            }
+
+            function sendMessage(
+                pubkey,
+                url,
+                message,
+                { onMessage, onTimeout },
+            ) {
+                const ws = new WebSocket(url);
+
+                ws.onopen = function () {
+                    const filter = { kinds: [0], authors: [pubkey] };
+
+                    ws.send(JSON.stringify(message));
+                };
+
+                ws.onmessage = function (e) {
+                    try {
+                        const message = JSON.parse(e.data);
+
+                        if (Array.isArray(message)) {
+                            onMessage(ws, message);
+                        }
+                    } catch (e) {
+                        // pass
+                    }
+                };
+
+                setTimeout(function () {
+                    ws.close();
+                    onTimeout(ws);
+                }, 30_000);
+            }
+
+            function getEventHash(e) {
+                return sha256(
+                    JSON.stringify([
+                        0,
+                        e.pubkey,
+                        e.created_at,
+                        e.kind,
+                        e.tags,
+                        e.content,
+                    ]),
+                );
+            }
+
+            async function sha256(input) {
+                const textAsBuffer = new TextEncoder().encode(input);
+                const hashBuffer = await crypto.subtle.digest(
+                    "SHA-256",
+                    textAsBuffer,
+                );
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+
+                return hashArray
+                    .map((item) => item.toString(16).padStart(2, "0"))
+                    .join("");
+            }</script></body></html>

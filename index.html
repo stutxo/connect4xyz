@@ -27,7 +27,7 @@
             }
             .menu-container {
                 position: absolute;
-                top: 20%;
+                top: 15%;
                 left: 50%;
                 transform: translateX(-50%);
                 display: flex;
@@ -49,6 +49,17 @@
                 }
             }
 
+            .container {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                gap: 10px;
+                padding: 10px;
+                border-radius: 10px;
+                background-color: rgba(255, 255, 255, 0.8);
+                box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.2);
+            }
+
             #titleHeader {
                 position: absolute;
                 display: flex;
@@ -57,17 +68,6 @@
                 transform: translateX(-50%);
                 font-size: 15px;
                 margin: 0;
-            }
-
-            .container {
-                display: flex;
-                flex-direction: row;
-                justify-content: center;
-                gap: 10px;
-                padding: 10px;
-                border-radius: 10px;
-                background-color: rgba(255, 255, 255, 0.8);
-                box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.2);
             }
 
             .top-buttons-container {
@@ -150,18 +150,26 @@
             /* #NostrLogin {
                 display: none;
             } */
+
+            #LoginContainer,
+            #ShareContainer,
+            #NewGameContainer,
+            #UrlContainer {
+                display: none;
+            }
         </style>
     </head>
 
     <body>
         <div class="menu-container">
+            <!-- <span id="loggedinHeader"></span> -->
             <div id="LoadingContainer" class="container">
                 <div id="loadingText">Loading...</div>
             </div>
 
             <div id="LoginContainer" class="container">
+                <button id="LogoutButton" style="display: none">Logout</button>
                 <button id="NostrLogin">login with nostr<br />(desktop)</button>
-                <!-- <br /> -->
                 <button id="GuestLogin">login as guest</button>
             </div>
 
@@ -212,16 +220,47 @@
             <br />
             no one can ever stop you playing connect4 ever again!<br /><br />
             relays:<br />
-            wss://nostr.zbd.gg<br />
             wss://relay.nostrss.re<br />
-            wss://nostr.lu.ke<br />
-            wss://relay.damus.io
+            wss://nostr.lu.ke
         </div>
         <script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js"></script>
         <script>
-            hideButtons();
+            const storedUserName = localStorage.getItem("username");
+
+            // const loginHeader = document.getElementById("loggedinHeader");
+
+            // loginHeader.textContent = storedUserName ? `${storedUserName}` : "";
 
             let currentBoardState = "";
+
+            // document.addEventListener("DOMContentLoaded", function () {
+            //     const storedUserName = localStorage.getItem("username");
+            //     const isRootPath = window.location.pathname === "/"; // Check if the path is root
+
+            //     if (storedUserName && isRootPath) {
+            //         // Hide login buttons only if a user is stored and the path is root
+            //         document.getElementById("NostrLogin").style.display =
+            //             "none";
+            //         document.getElementById("GuestLogin").style.display =
+            //             "none";
+            //         document.getElementById("LogoutButton").style.display =
+            //             "block";
+            //         console.log(`Logged in as: ${storedUserName}`);
+            //     } else {
+            //         // Show login buttons
+            //         document.getElementById("NostrLogin").style.display =
+            //             "block";
+            //         document.getElementById("GuestLogin").style.display =
+            //             "block";
+            //     }
+
+            //     document
+            //         .getElementById("LogoutButton")
+            //         .addEventListener("click", function () {
+            //             localStorage.clear();
+            //             window.location.reload();
+            //         });
+            // });
 
             document
                 .getElementById("aboutButton")
@@ -428,15 +467,6 @@
                 document.getElementById("NewGameContainer").style.display =
                     "flex";
             }
-            function hideButtons() {
-                document.getElementById("LoginContainer").style.display =
-                    "none";
-                document.getElementById("ShareContainer").style.display =
-                    "none";
-                document.getElementById("NewGameContainer").style.display =
-                    "none";
-                document.getElementById("UrlContainer").style.display = "none";
-            }
             function hideNewGameButton() {
                 document.getElementById("NewGameContainer").style.display =
                     "none";
@@ -477,6 +507,14 @@
 
                 console.log(template);
 
+                const nostrPostButton =
+                    document.getElementById("postNostrButton");
+                nostrPostButton.textContent = "Posted to Nostr! 🎉";
+                nostrPostButton.disabled = true;
+                setTimeout(() => {
+                    nostrPostButton.textContent = "Post to Nostr";
+                }, 3000);
+
                 window.nostr.signEvent(template).then(function (event) {
                     sendMessage("wss://relay.noswhere.com", ["EVENT", event], {
                         onMessage: function (ws, message) {
@@ -515,6 +553,10 @@
 
                             const username = content.lud16 || content.name;
                             localStorage.setItem("username", username);
+                            // const loginHeader =
+                            //     document.getElementById("loggedinHeader");
+
+                            // loginHeader.textContent = username;
                             resolved = true;
 
                             console.log("username set", username);

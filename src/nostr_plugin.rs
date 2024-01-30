@@ -77,10 +77,6 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
         client.add_relay("wss://relay.nostrss.re").await.unwrap();
         #[cfg(target_arch = "wasm32")]
         client.add_relay("wss://nostr.lu.ke").await.unwrap();
-        #[cfg(target_arch = "wasm32")]
-        client.add_relay("wss://relay.damus.io").await.unwrap();
-        #[cfg(target_arch = "wasm32")]
-        client.add_relay("wss://nostr.zbd.gg").await.unwrap();
 
         client.connect().await;
 

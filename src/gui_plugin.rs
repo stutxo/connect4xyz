@@ -320,6 +320,28 @@ fn place(
                 web_sys::CustomEvent::new_with_event_init_dict("send_board", &event_init).unwrap();
 
             web_sys::window().unwrap().dispatch_event(&event).unwrap();
+        } else {
+            let msg = if let Some(ref address) = send_net_msg.p2_ln_address {
+                format!("I lost to {} at connect4.xyz\n\n", address)
+            } else {
+                "I lost to an unknown player at connect4.xyz\n\n".to_string()
+            };
+
+            let share_data = ShareData {
+                msg,
+                moves: board.moves.clone(),
+            };
+
+            let send_board = serde_json::to_string(&share_data).unwrap();
+
+            let mut event_init = web_sys::CustomEventInit::new();
+
+            event_init.detail(&JsValue::from_str(&send_board));
+
+            let event =
+                web_sys::CustomEvent::new_with_event_init_dict("send_board", &event_init).unwrap();
+
+            web_sys::window().unwrap().dispatch_event(&event).unwrap();
         }
 
         //     for (_, transform, mut visibility) in end_game_buttons.iter_mut() {
@@ -533,7 +555,7 @@ fn update_text(
                 Some(enemy) => enemy.clone(),
                 None => "Player 2".to_string(),
             };
-            new_text_value = format!("{} defeated {}", address_display, enemy_display);
+            new_text_value = format!("{} beat {}", address_display, enemy_display);
         } else {
             let address_display = match &send_net_msg.local_ln_address {
                 Some(address) => address.clone(),

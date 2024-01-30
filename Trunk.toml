@@ -1,4 +1,4 @@
 [build]
-pattern_script = "<script type=\"module\">import init, { new_game, login } from '{base}{js}'; init('{base}{wasm}'); document.addEventListener('DOMContentLoaded', () => { document.getElementById('NewGameButton').addEventListener('click', () => { new_game(); }); document.getElementById('NostrLogin').addEventListener('click', async e => { e.preventDefault(); let nostr = await window.nostr; nostr ? login() : alert('Please install a Nostr extension.'); }); document.getElementById('GuestLogin').addEventListener('click', () => { login(); }); });</script>"
+pattern_script = "<script type=\"module\">import init, { new_game, login } from '{base}{js}'; init('{base}{wasm}'); document.addEventListener('DOMContentLoaded', () => { document.getElementById('NewGameButton').addEventListener('click', () => { new_game(); }); document.getElementById('NostrLogin').addEventListener('click', async e => { e.preventDefault(); let nostr = await window.nostr; nostr ? login() : alert('Please install a Nostr extension.'); }); document.getElementById('GuestLogin').addEventListener('click', () => { login(); localStorage.clear(); }); });</script>"
 dist = "./docs"
 public_url = "./"
