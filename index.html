@@ -225,9 +225,8 @@
         </div>
         <script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js"></script>
         <script>
-            const storedUserName = localStorage.getItem("username");
-
-            // const loginHeader = document.getElementById("loggedinHeader");
+            //
+            //
 
             // loginHeader.textContent = storedUserName ? `${storedUserName}` : "";
 
@@ -539,6 +538,8 @@
             }
 
             function fetchUsername(pubkey, relay, cb) {
+                const newgamebutton = document.getElementById("NewGameButton");
+                newgamebutton.disabled = true;
                 const filter = { kinds: [0], authors: [pubkey] };
                 const req = ["REQ", "username", filter];
 
@@ -557,6 +558,7 @@
                             //     document.getElementById("loggedinHeader");
 
                             // loginHeader.textContent = username;
+                            newgamebutton.disabled = false;
                             resolved = true;
 
                             console.log("username set", username);
