@@ -293,6 +293,12 @@
             document
                 .getElementById("NostrLogin")
                 .addEventListener("click", function () {
+                    const newgamebutton =
+                        document.getElementById("NewGameButton");
+                    const joingamebutton =
+                        document.getElementById("JoinGameButton");
+                    newgamebutton.disabled = true;
+                    joingamebutton.disabled = true;
                     let storedPubKey = localStorage.getItem("pubkey");
                     if (window.nostr) {
                         if (storedPubKey) {
@@ -337,6 +343,7 @@
                                         .then((relays) => {
                                             console.log("Relays:", relays);
                                             let relay = Object.keys(relays)[0];
+
                                             fetchUsername(pubkey, relay);
                                         })
                                         .catch((error) => {
@@ -557,8 +564,6 @@
                 const newgamebutton = document.getElementById("NewGameButton");
                 const joingamebutton =
                     document.getElementById("JoinGameButton");
-                newgamebutton.disabled = true;
-                joingamebutton.disabled = true;
                 const filter = { kinds: [0], authors: [pubkey] };
                 const req = ["REQ", "username", filter];
 
