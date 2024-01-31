@@ -311,11 +311,14 @@ fn place(
 
     #[allow(clippy::collapsible_if)]
     if (board.winner.is_some() || board.draw) && send_net_msg.player_type != 3 {
+        let location = web_sys::window().unwrap().location();
+        let full_url = location.href().unwrap();
+
         if board.winner == Some(send_net_msg.player_type) {
             let msg = if let Some(ref address) = send_net_msg.p2_ln_address {
-                format!("I beat {} at connect4.xyz\n\n", address)
+                format!("I beat {} at #connect4\n\n{}\n\n", address, full_url)
             } else {
-                "I beat an unknown player at connect4.xyz\n\n".to_string()
+                format!("I beat an unknown player at #connect4\n\n{}\n\n", full_url)
             };
 
             let share_data = ShareData {
@@ -335,9 +338,12 @@ fn place(
             web_sys::window().unwrap().dispatch_event(&event).unwrap();
         } else {
             let msg = if let Some(ref address) = send_net_msg.p2_ln_address {
-                format!("I lost to {} at connect4.xyz\n\n", address)
+                format!("I lost to {} at #connect4\n\n{}\n\n", address, full_url)
             } else {
-                "I lost to an unknown player at connect4.xyz\n\n".to_string()
+                format!(
+                    "I lost to an unknown player at #connect4\n\n{}\n\n",
+                    full_url
+                )
             };
 
             let share_data = ShareData {
