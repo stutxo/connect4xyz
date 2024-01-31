@@ -36,6 +36,7 @@ const ROWS: usize = 7;
 const SPACING: f32 = 5.0;
 
 static CEATE_GAME_CALLED: AtomicBool = AtomicBool::new(false);
+static JOIN_GAME_CALLED: AtomicBool = AtomicBool::new(false);
 static LOGIN_CALLED: AtomicBool = AtomicBool::new(false);
 
 // static RESET_CALLED: AtomicBool = AtomicBool::new(false);
@@ -56,6 +57,10 @@ impl Plugin for Connect4GuiPlugin {
             .add_systems(Update, nostr_keys.run_if(in_state(AppState::LogIn)))
             .add_systems(
                 Update,
+                listen_for_join_game.run_if(in_state(AppState::JoinGame)),
+            )
+            .add_systems(
+                Update,
                 (
                     nostr_keys,
                     check_new_game_system.run_if(in_state(AppState::Menu)),
@@ -74,7 +79,7 @@ fn nostr_keys(send_net_msg: ResMut<SendNetMsg>, mut next_state: ResMut<NextState
             LOGIN_CALLED.store(false, Ordering::SeqCst);
 
             let window = web_sys::window().unwrap();
-            let event = web_sys::CustomEvent::new("loggedIn").unwrap();
+            let event = web_sys::CustomEvent::new("createGame").unwrap();
             window.dispatch_event(&event).unwrap();
             next_state.set(AppState::Menu);
         }
@@ -83,11 +88,19 @@ fn nostr_keys(send_net_msg: ResMut<SendNetMsg>, mut next_state: ResMut<NextState
             LOGIN_CALLED.store(false, Ordering::SeqCst);
 
             let window = web_sys::window().unwrap();
-            let event = web_sys::CustomEvent::new("loggedIn").unwrap();
+            let event = web_sys::CustomEvent::new("joinGame").unwrap();
             window.dispatch_event(&event).unwrap();
-            next_state.set(AppState::InGame);
+            next_state.set(AppState::JoinGame);
         }
     }
+}
+
+fn listen_for_join_game(mut next_state: ResMut<NextState<AppState>>) {
+    if JOIN_GAME_CALLED.load(Ordering::SeqCst) {
+        info!("egg");
+        JOIN_GAME_CALLED.store(false, Ordering::SeqCst);
+        next_state.set(AppState::InGame);
+    };
 }
 
 fn setup(
@@ -344,46 +357,45 @@ fn place(
             web_sys::window().unwrap().dispatch_event(&event).unwrap();
         }
 
-        //     for (_, transform, mut visibility) in end_game_buttons.iter_mut() {
-        //         *visibility = Visibility::Visible;
-        //         if mouse.just_pressed(MouseButton::Left)
-        //             || mouse.just_pressed(MouseButton::Right)
-        //             || touches.iter_just_pressed().any(|_| true)
-        //         {
-        //             if let Some(window) = windows.iter().next() {
-        //                 if let Some(cursor) = window.cursor_position() {
-        //                     let position = get_position(cursor, window);
+        for (_, transform, mut visibility) in end_game_buttons.iter_mut() {
+            *visibility = Visibility::Visible;
+            if mouse.just_pressed(MouseButton::Left)
+                || mouse.just_pressed(MouseButton::Right)
+                || touches.iter_just_pressed().any(|_| true)
+            {
+                if let Some(window) = windows.iter().next() {
+                    if let Some(cursor) = window.cursor_position() {
+                        let position = get_position(cursor, window);
 
-        //                     if position.distance(transform.translation.truncate()) < 20.0 {
-        //                         *board = Board::new();
-        //                         for entity in coin_query.iter() {
-        //                             commands.entity(entity).despawn();
-        //                         }
-        //                         *visibility = Visibility::Hidden;
-        //                         send_net_msg.clone().send_replay();
-        //                         hide_copy_board();
-        //                         break;
-        //                     }
-        //                 }
-        //             }
-        //             for touch in touches.iter() {
-        //                 if let Some(window) = windows.iter().next() {
-        //                     let position = get_position(touch.position(), window);
-        //                     if position.distance(transform.translation.truncate()) < 20.0 {
-        //                         *board = Board::new();
-        //                         for entity in coin_query.iter() {
-        //                             commands.entity(entity).despawn();
-        //                         }
-        //                         *visibility = Visibility::Hidden;
-        //                         send_net_msg.clone().send_replay();
-        //                         hide_copy_board();
-        //                         break;
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
+                        if position.distance(transform.translation.truncate()) < 20.0 {
+                            *board = Board::new();
+                            for entity in coin_query.iter() {
+                                commands.entity(entity).despawn();
+                            }
+                            *visibility = Visibility::Hidden;
+                            send_net_msg.clone().send_replay();
+                            hide_copy_board();
+                            break;
+                        }
+                    }
+                }
+                for touch in touches.iter() {
+                    if let Some(window) = windows.iter().next() {
+                        let position = get_position(touch.position(), window);
+                        if position.distance(transform.translation.truncate()) < 20.0 {
+                            *board = Board::new();
+                            for entity in coin_query.iter() {
+                                commands.entity(entity).despawn();
+                            }
+                            *visibility = Visibility::Hidden;
+                            send_net_msg.clone().send_replay();
+                            hide_copy_board();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     for (coin, mut sprite, _, mut visibility) in board_pos.iter_mut() {
@@ -675,6 +687,10 @@ pub fn new_game() {
 #[wasm_bindgen]
 pub fn login() {
     LOGIN_CALLED.store(true, Ordering::SeqCst);
+}
+#[wasm_bindgen]
+pub fn join_game() {
+    JOIN_GAME_CALLED.store(true, Ordering::SeqCst);
 }
 
 // #[wasm_bindgen]

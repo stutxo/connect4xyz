@@ -35,4 +35,5 @@ pub enum AppState {
     LogIn,
     Menu,
     InGame,
+    JoinGame,
 }

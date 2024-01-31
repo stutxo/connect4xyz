@@ -154,6 +154,7 @@
             #LoginContainer,
             #ShareContainer,
             #NewGameContainer,
+            #JoinGameContainer,
             #UrlContainer {
                 display: none;
             }
@@ -175,6 +176,10 @@
 
             <div id="NewGameContainer" class="container">
                 <button id="NewGameButton">Create Game 🎲</button>
+            </div>
+
+            <div id="JoinGameContainer" class="container">
+                <button id="JoinGameButton">Join Game 🎲</button>
             </div>
 
             <div id="UrlContainer" class="container">
@@ -366,8 +371,13 @@
                 showLoginButton();
             });
 
-            window.addEventListener("loggedIn", () => {
+            window.addEventListener("createGame", () => {
                 showNewGameButton();
+                hideLoginButton();
+            });
+
+            window.addEventListener("joinGame", () => {
+                showJoinGameButton();
                 hideLoginButton();
             });
 
@@ -469,9 +479,12 @@
             function hideNewGameButton() {
                 document.getElementById("NewGameContainer").style.display =
                     "none";
+                document.getElementById("JoinGameContainer").style.display =
+                    "none";
             }
-            function hideCopyButton() {
-                document.getElementById("UrlContainer").style.display = "none";
+            function showJoinGameButton() {
+                document.getElementById("JoinGameContainer").style.display =
+                    "flex";
             }
             function hideLoading() {
                 document.getElementById("LoadingContainer").style.display =
@@ -539,7 +552,10 @@
 
             function fetchUsername(pubkey, relay, cb) {
                 const newgamebutton = document.getElementById("NewGameButton");
+                const joingamebutton =
+                    document.getElementById("JoinGameButton");
                 newgamebutton.disabled = true;
+                joingamebutton.disabled = true;
                 const filter = { kinds: [0], authors: [pubkey] };
                 const req = ["REQ", "username", filter];
 
@@ -559,6 +575,7 @@
 
                             // loginHeader.textContent = username;
                             newgamebutton.disabled = false;
+                            joingamebutton.disabled = false;
                             resolved = true;
 
                             console.log("username set", username);
