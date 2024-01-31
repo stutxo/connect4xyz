@@ -357,45 +357,45 @@ fn place(
             web_sys::window().unwrap().dispatch_event(&event).unwrap();
         }
 
-        for (_, transform, mut visibility) in end_game_buttons.iter_mut() {
-            *visibility = Visibility::Visible;
-            if mouse.just_pressed(MouseButton::Left)
-                || mouse.just_pressed(MouseButton::Right)
-                || touches.iter_just_pressed().any(|_| true)
-            {
-                if let Some(window) = windows.iter().next() {
-                    if let Some(cursor) = window.cursor_position() {
-                        let position = get_position(cursor, window);
+        //     for (_, transform, mut visibility) in end_game_buttons.iter_mut() {
+        //         *visibility = Visibility::Visible;
+        //         if mouse.just_pressed(MouseButton::Left)
+        //             || mouse.just_pressed(MouseButton::Right)
+        //             || touches.iter_just_pressed().any(|_| true)
+        //         {
+        //             if let Some(window) = windows.iter().next() {
+        //                 if let Some(cursor) = window.cursor_position() {
+        //                     let position = get_position(cursor, window);
 
-                        if position.distance(transform.translation.truncate()) < 20.0 {
-                            *board = Board::new();
-                            for entity in coin_query.iter() {
-                                commands.entity(entity).despawn();
-                            }
-                            *visibility = Visibility::Hidden;
-                            send_net_msg.clone().send_replay();
-                            hide_copy_board();
-                            break;
-                        }
-                    }
-                }
-                for touch in touches.iter() {
-                    if let Some(window) = windows.iter().next() {
-                        let position = get_position(touch.position(), window);
-                        if position.distance(transform.translation.truncate()) < 20.0 {
-                            *board = Board::new();
-                            for entity in coin_query.iter() {
-                                commands.entity(entity).despawn();
-                            }
-                            *visibility = Visibility::Hidden;
-                            send_net_msg.clone().send_replay();
-                            hide_copy_board();
-                            break;
-                        }
-                    }
-                }
-            }
-        }
+        //                     if position.distance(transform.translation.truncate()) < 20.0 {
+        //                         *board = Board::new();
+        //                         for entity in coin_query.iter() {
+        //                             commands.entity(entity).despawn();
+        //                         }
+        //                         *visibility = Visibility::Hidden;
+        //                         send_net_msg.clone().send_replay();
+        //                         hide_copy_board();
+        //                         break;
+        //                     }
+        //                 }
+        //             }
+        //             for touch in touches.iter() {
+        //                 if let Some(window) = windows.iter().next() {
+        //                     let position = get_position(touch.position(), window);
+        //                     if position.distance(transform.translation.truncate()) < 20.0 {
+        //                         *board = Board::new();
+        //                         for entity in coin_query.iter() {
+        //                             commands.entity(entity).despawn();
+        //                         }
+        //                         *visibility = Visibility::Hidden;
+        //                         send_net_msg.clone().send_replay();
+        //                         hide_copy_board();
+        //                         break;
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
     }
 
     for (coin, mut sprite, _, mut visibility) in board_pos.iter_mut() {
