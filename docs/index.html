@@ -101,6 +101,12 @@
                                 storedUserName,
                             );
                         } else {
+                            const newgamebutton =
+                                document.getElementById("NewGameButton");
+                            const joingamebutton =
+                                document.getElementById("JoinGameButton");
+                            newgamebutton.disabled = true;
+                            joingamebutton.disabled = true;
                             window.nostr
                                 .getPublicKey()
                                 .then((pubkey) => {
