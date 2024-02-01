@@ -197,7 +197,7 @@
                 >
                     Share result 📋
                 </button>
-                <button id="postNostrButton" onclick="postToNostr()">
+                <button id="postNostrButton" onclick="postToNostr()" disabled>
                     Post to Nostr
                 </button>
             </div>
@@ -332,6 +332,9 @@
                                 "Username from localStorage:",
                                 storedUserName,
                             );
+                            document.getElementById(
+                                "postNostrButton",
+                            ).style.display = "flex";
                         } else {
                             const newgamebutton =
                                 document.getElementById("NewGameButton");
@@ -366,6 +369,8 @@
                                     );
                                 });
                         }
+                        document.getElementById("postNostrButton").disabled =
+                            false;
                     } else {
                         console.log(
                             "Nostr extension is not installed and no public key in localStorage.",
@@ -539,9 +544,6 @@
                     document.getElementById("postNostrButton");
                 nostrPostButton.textContent = "Posted to Nostr! 🎉";
                 nostrPostButton.disabled = true;
-                setTimeout(() => {
-                    nostrPostButton.textContent = "Post to Nostr";
-                }, 3000);
 
                 window.nostr.signEvent(template).then(function (event) {
                     sendMessage("wss://relay.noswhere.com", ["EVENT", event], {

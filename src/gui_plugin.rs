@@ -97,7 +97,6 @@ fn nostr_keys(send_net_msg: ResMut<SendNetMsg>, mut next_state: ResMut<NextState
 
 fn listen_for_join_game(mut next_state: ResMut<NextState<AppState>>) {
     if JOIN_GAME_CALLED.load(Ordering::SeqCst) {
-        info!("egg");
         JOIN_GAME_CALLED.store(false, Ordering::SeqCst);
         next_state.set(AppState::InGame);
     };
