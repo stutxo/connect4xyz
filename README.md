@@ -52,7 +52,7 @@ For dispatching replay game messages.
 
 ## Building and Running Locally
 
-Utilize [trunk](https://trunkrs.dev/) to build and serve locally.
+Install [trunk](https://trunkrs.dev/) to build and serve locally.
 
 ### Serve locally with trunk
 
