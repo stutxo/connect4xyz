@@ -1,4 +1,3 @@
-// use nostr_sdk::secp256k1::XOnlyPublicKey;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -6,7 +5,6 @@ pub enum NetworkMessage {
     NewGame(Option<String>),
     JoinGame(Players),
     Input(usize),
-    Replay,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

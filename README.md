@@ -44,12 +44,6 @@ To relay game inputs.
 
 **Kind**: `Regular(4444)`
 
-### 4. Send Replay (not in use right now)
-
-For dispatching replay game messages.
-
-**Kind**: `Regular(4444)`
-
 ## Building and Running Locally
 
 Install [trunk](https://trunkrs.dev/) to build and serve locally.

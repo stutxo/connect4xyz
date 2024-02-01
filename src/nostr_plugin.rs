@@ -1,23 +1,17 @@
-use std::{
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-    time::Duration,
-};
+use std::time::Duration;
 
 use bevy::prelude::*;
-use futures::{lock::Mutex, StreamExt};
+use futures::StreamExt;
 use nostr_sdk::{
-    serde_json, Client, ClientMessage, Event as NostrEvent, EventBuilder, Filter, Keys, Kind,
+    serde_json, Client, ClientMessage, Event as NostrEvent, EventBuilder, Filter, Kind,
     RelayPoolNotification, Tag, Timestamp,
 };
-use wasm_bindgen::prelude::wasm_bindgen;
+
 use wasm_bindgen_futures::spawn_local;
 use web_sys::window;
 
 use crate::{
-    components::{CoinMove, ReplayButton},
+    components::CoinMove,
     messages::{NetworkMessage, Players},
     resources::{Board, NetworkStuff, PlayerMove, SendNetMsg},
     AppState,
@@ -207,7 +201,11 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
 
         client
             .handle_notifications(|notification| async {
-                if let RelayPoolNotification::Event { relay_url, event } = notification {
+                if let RelayPoolNotification::Event {
+                    relay_url: _,
+                    event,
+                } = notification
+                {
                     if event.pubkey != nostr_keys.public_key() {
                         info!("received event: {:?}", event);
                         if event.content.contains("JoinGame") && !spectator {
@@ -245,8 +243,6 @@ fn handle_net_msg(
     mut board: ResMut<Board>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    coin_query: Query<Entity, With<CoinMove>>,
-    mut replay_button: Query<(&mut ReplayButton, &mut Visibility)>,
 ) {
     if let Some(ref mut receive_rx) = network_stuff.read {
         while let Ok(Some(message)) = receive_rx.try_next() {
@@ -303,15 +299,6 @@ fn handle_net_msg(
                             board.player_turn = if board.player_turn == 1 { 2 } else { 1 };
 
                             break;
-                        }
-                    }
-                    NetworkMessage::Replay => {
-                        *board = Board::new();
-                        for entity in coin_query.iter() {
-                            commands.entity(entity).despawn();
-                        }
-                        for (_, mut visibility) in replay_button.iter_mut() {
-                            *visibility = Visibility::Hidden;
                         }
                     }
                     NetworkMessage::JoinGame(game_info) => {

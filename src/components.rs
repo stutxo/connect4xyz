@@ -37,5 +37,3 @@ pub struct TextChanges;
 
 #[derive(Component)]
 pub struct DisplayTurn;
-#[derive(Component)]
-pub struct ReplayButton;

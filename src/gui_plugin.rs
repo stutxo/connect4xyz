@@ -1,26 +1,14 @@
-use std::{
-    str::FromStr,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Mutex,
-    },
-    time::Duration,
-};
+use std::sync::atomic::{AtomicBool, Ordering};
 
-use bevy::{asset::AssetMetaCheck, core_pipeline::clear_color::ClearColorConfig, prelude::*};
-use js_sys::Uint8Array;
-use nostr_sdk::{
-    secp256k1::XOnlyPublicKey, serde_json, Client, Event as NostrEvent, Filter, JsonUtil, Keys,
-    Kind, Metadata,
-};
-use once_cell::sync::Lazy;
+use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
+
+use nostr_sdk::serde_json;
 use serde::Serialize;
-use wasm_bindgen::JsValue;
-use wasm_bindgen_futures::{spawn_local, JsFuture};
+
 extern crate js_sys;
 
 use crate::{
-    components::{CoinMove, CoinSlot, DisplayTurn, ReplayButton, TextChanges, TopRow},
+    components::{CoinMove, CoinSlot, DisplayTurn, TextChanges, TopRow},
     resources::{Board, PlayerMove, SendNetMsg},
     AppState,
 };
@@ -38,8 +26,6 @@ const SPACING: f32 = 5.0;
 static CEATE_GAME_CALLED: AtomicBool = AtomicBool::new(false);
 static JOIN_GAME_CALLED: AtomicBool = AtomicBool::new(false);
 static LOGIN_CALLED: AtomicBool = AtomicBool::new(false);
-
-// static RESET_CALLED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Serialize)]
 struct ShareData {
@@ -114,7 +100,6 @@ fn setup(
         ..Default::default()
     });
 
-    #[cfg(target_arch = "wasm32")]
     if is_game_id_present() {
         next_state.set(AppState::LogIn);
 
@@ -123,7 +108,6 @@ fn setup(
 }
 
 pub fn is_game_id_present() -> bool {
-    #[cfg(target_arch = "wasm32")]
     {
         if let Some(location) = window().and_then(|w| w.location().pathname().ok()) {
             return !location.is_empty() && location != "/";
@@ -256,11 +240,6 @@ fn place(
     asset_server: Res<AssetServer>,
     mut update_sprite: Query<&mut Handle<Image>, (With<TopRow>, Without<DisplayTurn>)>,
     mut board: ResMut<Board>,
-    coin_query: Query<Entity, With<CoinMove>>,
-    mut end_game_buttons: Query<
-        (&mut ReplayButton, &Transform, &mut Visibility),
-        Without<CoinSlot>,
-    >,
     send_net_msg: ResMut<SendNetMsg>,
 ) {
     let (camera, camera_transform) = camera_query.single();
@@ -361,46 +340,6 @@ fn place(
 
             web_sys::window().unwrap().dispatch_event(&event).unwrap();
         }
-
-        //     for (_, transform, mut visibility) in end_game_buttons.iter_mut() {
-        //         *visibility = Visibility::Visible;
-        //         if mouse.just_pressed(MouseButton::Left)
-        //             || mouse.just_pressed(MouseButton::Right)
-        //             || touches.iter_just_pressed().any(|_| true)
-        //         {
-        //             if let Some(window) = windows.iter().next() {
-        //                 if let Some(cursor) = window.cursor_position() {
-        //                     let position = get_position(cursor, window);
-
-        //                     if position.distance(transform.translation.truncate()) < 20.0 {
-        //                         *board = Board::new();
-        //                         for entity in coin_query.iter() {
-        //                             commands.entity(entity).despawn();
-        //                         }
-        //                         *visibility = Visibility::Hidden;
-        //                         send_net_msg.clone().send_replay();
-        //                         hide_copy_board();
-        //                         break;
-        //                     }
-        //                 }
-        //             }
-        //             for touch in touches.iter() {
-        //                 if let Some(window) = windows.iter().next() {
-        //                     let position = get_position(touch.position(), window);
-        //                     if position.distance(transform.translation.truncate()) < 20.0 {
-        //                         *board = Board::new();
-        //                         for entity in coin_query.iter() {
-        //                             commands.entity(entity).despawn();
-        //                         }
-        //                         *visibility = Visibility::Hidden;
-        //                         send_net_msg.clone().send_replay();
-        //                         hide_copy_board();
-        //                         break;
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
     }
 
     for (coin, mut sprite, _, mut visibility) in board_pos.iter_mut() {
@@ -697,9 +636,3 @@ pub fn login() {
 pub fn join_game() {
     JOIN_GAME_CALLED.store(true, Ordering::SeqCst);
 }
-
-// #[wasm_bindgen]
-// pub fn replay() {
-//     info!("replay called");
-//     RESET_CALLED.store(true, Ordering::SeqCst);
-// }
