@@ -54,13 +54,13 @@ For dispatching replay game messages.
 
 Utilize [trunk](https://trunkrs.dev/) to build and serve locally.
 
-### server dev (Run this to open in a local browser)
+### Serve locally with trunk
 
 ```
 ./build.sh dev
 ```
 
-release
+### Build locally with trunk
 ```
 ./build.sh release
 ```
