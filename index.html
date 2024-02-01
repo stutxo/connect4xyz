@@ -197,7 +197,7 @@
                 >
                     Share result 📋
                 </button>
-                <button id="postNostrButton" onclick="postToNostr()" disabled>
+                <button id="postNostrButton" onclick="postToNostr()">
                     Post to Nostr
                 </button>
             </div>
@@ -369,8 +369,6 @@
                                     );
                                 });
                         }
-                        document.getElementById("postNostrButton").disabled =
-                            false;
                     } else {
                         console.log(
                             "Nostr extension is not installed and no public key in localStorage.",
@@ -524,6 +522,10 @@
             }
 
             async function postToNostr() {
+                if (!window.nostr) {
+                    alert("Please install a Nostr extension.");
+                    return;
+                }
                 let pubkey = localStorage.getItem("pubkey");
 
                 let template = {
