@@ -44,7 +44,7 @@ To relay game inputs.
 
 **Kind**: `Regular(4444)`
 
-### 4. Send Replay
+### 4. Send Replay (not in use right now)
 
 For dispatching replay game messages.
 
