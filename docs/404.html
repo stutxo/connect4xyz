@@ -342,10 +342,14 @@
                 const newgamebutton = document.getElementById("NewGameButton");
                 const joingamebutton =
                     document.getElementById("JoinGameButton");
+                joingamebutton.textContent = "fetching username...";
+                newgamebutton.textContent = "fetching username...";
                 const filter = { kinds: [0], authors: [pubkey] };
                 const req = ["REQ", "username", filter];
 
                 let resolved = false;
+
+                console.log(relay);
 
                 sendMessage(pubkey, relay || "wss://nostr.zdb.gg", req, {
                     onMessage: function (ws, message) {
@@ -362,6 +366,8 @@
                             // loginHeader.textContent = username;
                             newgamebutton.disabled = false;
                             joingamebutton.disabled = false;
+                            joingamebutton.textContent = "Join Game 🎲";
+                            newgamebutton.textContent = "Create Game 🎲";
                             resolved = true;
 
                             console.log("username set", username);
@@ -374,6 +380,12 @@
                     onTimeout: function () {
                         if (!resolved && cb) {
                             cb();
+                        } else {
+                            console.log("no username found");
+                            newgamebutton.disabled = false;
+                            joingamebutton.disabled = false;
+                            joingamebutton.textContent = "Join Game 🎲";
+                            newgamebutton.textContent = "Create Game 🎲";
                         }
                     },
                 });
@@ -391,6 +403,7 @@
                     const filter = { kinds: [0], authors: [pubkey] };
 
                     ws.send(JSON.stringify(message));
+                    console.log("sent", message);
                 };
 
                 ws.onmessage = function (e) {
@@ -408,7 +421,7 @@
                 setTimeout(function () {
                     ws.close();
                     onTimeout(ws);
-                }, 30_000);
+                }, 50_00);
             }
 
             function getEventHash(e) {
