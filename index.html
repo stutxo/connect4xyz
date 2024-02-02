@@ -25,6 +25,16 @@
                 width: 100%;
                 overflow: hidden;
             }
+            @media (max-width: 800px) {
+                body,
+                html {
+                    margin: 0;
+                    padding: 0;
+                    height: 110%;
+                    width: 100%;
+                    overflow: hidden;
+                }
+            }
             div.menu-container .container {
                 display: flex;
                 flex-direction: column;
@@ -42,6 +52,27 @@
                 transform: translateX(-50%);
                 align-items: center;
                 position: absolute;
+            }
+
+            @media (max-width: 800px) {
+                div.menu-container .container {
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    gap: 10px;
+                    padding: 20px;
+                    border-radius: 5px;
+                    background-color: #ffffff;
+                    box-shadow: 0px 1px 5px rgba(0, 0, 0, 0.05);
+                    font-family: "Fira Mono", monospace;
+                    color: #333;
+                    border: 1px solid #eaeaea;
+                    top: 60%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    align-items: center;
+                    position: absolute;
+                }
             }
 
             div.menu-container .container button {
@@ -71,7 +102,7 @@
             #homeButton {
                 border: none;
                 cursor: pointer;
-                font-size: 16px;
+                font-size: 30px;
                 background-color: rgba(255, 255, 255, 0.8);
                 touch-action: manipulation;
             }
