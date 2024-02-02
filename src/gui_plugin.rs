@@ -615,16 +615,6 @@ pub fn hide_new_game_button() {
 }
 
 #[wasm_bindgen]
-extern "C" {
-    fn hideCopyBoardButton();
-}
-
-#[wasm_bindgen]
-pub fn hide_copy_board() {
-    hideCopyBoardButton();
-}
-
-#[wasm_bindgen]
 pub fn new_game() {
     CEATE_GAME_CALLED.store(true, Ordering::SeqCst);
 }

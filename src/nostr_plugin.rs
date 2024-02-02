@@ -67,9 +67,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
         let nostr_keys = &send_net_msg_clone.nostr_keys;
         let client = Client::new(nostr_keys);
 
-        #[cfg(target_arch = "wasm32")]
         client.add_relay("wss://relay.nostrss.re").await.unwrap();
-        #[cfg(target_arch = "wasm32")]
         client.add_relay("wss://nostr.lu.ke").await.unwrap();
 
         client.connect().await;
