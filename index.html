@@ -82,6 +82,20 @@
                 touch-action: manipulation;
             }
 
+            .github-container {
+                position: absolute;
+                top: 0;
+                right: 41%;
+            }
+
+            @media (max-width: 800px) {
+                .github-container {
+                    position: absolute;
+                    top: 0;
+                    left: 85%;
+                }
+            }
+
             #LoginContainer,
             #ShareContainer,
             #NewGameContainer,
@@ -93,13 +107,15 @@
     </head>
 
     <body>
+        <div class="github-container">
+            <a
+                class="github-button"
+                href="https://github.com/stum0/connect4xyz"
+                data-show-count="true"
+                aria-label="Star stum0/connect4xyz on GitHub"
+            ></a>
+        </div>
         <button id="homeButton">🏠</button>
-        <a
-            class="github-button"
-            href="https://github.com/stum0/connect4xyz"
-            data-show-count="true"
-            aria-label="Star stum0/connect4xyz on GitHub"
-        ></a>
 
         <div class="menu-container">
             <!-- Loading Container -->
