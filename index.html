@@ -22,7 +22,7 @@
                 margin: 0 auto;
                 padding: 0;
                 height: 70%;
-                width: 350px;
+                width: 100%;
                 overflow: hidden;
             }
 
@@ -82,6 +82,20 @@
                 touch-action: manipulation;
             }
 
+            .home-container {
+                position: absolute;
+                top: 0;
+                left: 40%;
+            }
+
+            @media (max-width: 800px) {
+                .home-container {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                }
+            }
+
             .github-container {
                 position: absolute;
                 top: 0;
@@ -115,7 +129,10 @@
                 aria-label="Star stum0/connect4xyz on GitHub"
             ></a>
         </div>
-        <button id="homeButton">🏠</button>
+
+        <div class="home-container">
+            <button id="homeButton">🏠</button>
+        </div>
 
         <div class="menu-container">
             <!-- Loading Container -->
