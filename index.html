@@ -75,6 +75,21 @@
                 touch-action: manipulation;
             }
 
+            .gameId {
+                position: absolute;
+                display: flex;
+                justify-content: center;
+                left: 50%;
+                top: 10%;
+                transform: translateX(-50%);
+            }
+
+            #gameIdDisplay {
+                font-size: 20px;
+                font-family: "Fira Mono", monospace;
+                color: #333;
+            }
+
             .home-container {
                 position: absolute;
                 top: 0;
@@ -107,7 +122,8 @@
             #ShareContainer,
             #NewGameContainer,
             #JoinGameContainer,
-            #UrlContainer {
+            #UrlContainer,
+            #gameIdDisplay {
                 display: none;
             }
         </style>
@@ -125,6 +141,10 @@
 
         <div class="home-container">
             <button id="homeButton">🏠</button>
+        </div>
+
+        <div class="gameId">
+            <span id="gameIdDisplay"></span>
         </div>
 
         <div class="menu-container">
@@ -273,11 +293,13 @@
 
             window.addEventListener("urlChanged", () => {
                 displayShareButton();
+                displayGameId();
             });
 
             window.addEventListener("wasmLoaded", () => {
                 hideLoading();
                 showLoginButton();
+                displayGameId();
             });
 
             window.addEventListener("createGame", () => {
@@ -297,6 +319,17 @@
             });
 
             //functions
+
+            function displayGameId() {
+                const path = window.location.pathname.substring(1);
+
+                if (path) {
+                    document.getElementById("gameIdDisplay").style.display =
+                        "flex";
+                    document.getElementById("gameIdDisplay").textContent =
+                        "ID: " + path;
+                }
+            }
 
             function copyBoardStateToClipboard() {
                 navigator.clipboard
