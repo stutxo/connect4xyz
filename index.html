@@ -31,7 +31,7 @@
                 display: flex;
                 justify-content: center;
                 left: 50%;
-                top: 10%;
+                top: 40%;
                 transform: translateX(-50%);
             }
 
@@ -40,8 +40,7 @@
                 gap: 10px;
                 padding: 20px;
                 border-radius: 5px;
-                background-color: #ffffff;
-                box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+                background-color: rgba(242, 242, 242, 0.5);
                 font-family: "Fira Mono", monospace;
                 color: #333;
                 border: 1px solid #eaeaea;
@@ -54,12 +53,13 @@
             }
 
             div.menu-container .container button {
-                background-color: #f2f2f2;
+                background-color: rgba(242, 242, 242, 0.9);
                 color: #333;
                 border: none;
                 padding: 10px 15px;
                 border-radius: 5px;
                 cursor: pointer;
+                font-family: "Fira Mono", monospace;
                 transition: background-color 0.3s ease;
             }
 
@@ -85,7 +85,7 @@
             }
 
             #gameIdDisplay {
-                font-size: 20px;
+                font-size: 15px;
                 font-family: "Fira Mono", monospace;
                 color: #333;
             }
@@ -172,10 +172,10 @@
                     id="copyBoardButton"
                     onclick="copyBoardStateToClipboard()"
                 >
-                    Share result 📋
+                    Share Result 📋
                 </button>
                 <button id="postNostrButton" onclick="postToNostr()">
-                    Share to Nostr
+                    Post to Nostr
                 </button>
             </div>
         </div>
@@ -218,7 +218,7 @@
                     document.getElementById("gameIdDisplay").style.display =
                         "flex";
                     document.getElementById("gameIdDisplay").textContent =
-                        "ID: " + path;
+                        "Game Room: " + path;
                 }
             }
 
