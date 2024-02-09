@@ -90,49 +90,46 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
             .await
             .unwrap();
 
-        let mut spectator = false;
         events.reverse();
+
+        info!("nostr_key: {:?}", nostr_keys.public_key());
 
         if let Some(last_event) = events.last() {
             match serde_json::from_str::<NetworkMessage>(&last_event.content) {
                 Ok(NetworkMessage::NewGame(player)) => {
                     info!("current tip: {:?}", last_event.content);
+                    if last_event.pubkey != nostr_keys.public_key() {
+                        let players = if send_net_msg_clone_2.local_ln_address.is_none() {
+                            Players::new(player, None)
+                        } else {
+                            Players::new(player, send_net_msg_clone_2.local_ln_address.clone())
+                        };
 
-                    let players = if send_net_msg_clone_2.local_ln_address.is_none() {
-                        Players::new(player, None)
+                        let msg = NetworkMessage::JoinGame(players);
+                        let serialized_message = serde_json::to_string(&msg).unwrap();
+
+                        let nostr_msg = ClientMessage::event(
+                            EventBuilder::new(
+                                Kind::Regular(4444),
+                                serialized_message,
+                                [Tag::Hashtag(tag.clone())],
+                            )
+                            .to_event(nostr_keys)
+                            .unwrap(),
+                        );
+
+                        match nostr_msg_tx_clone.clone().try_send(nostr_msg) {
+                            Ok(()) => {}
+                            Err(e) => {
+                                error!("Error sending join_game message: {}", e)
+                            }
+                        };
                     } else {
-                        Players::new(player, send_net_msg_clone_2.local_ln_address.clone())
-                    };
-
-                    let msg = NetworkMessage::JoinGame(players);
-                    let serialized_message = serde_json::to_string(&msg).unwrap();
-
-                    let nostr_msg = ClientMessage::event(
-                        EventBuilder::new(
-                            Kind::Regular(4444),
-                            serialized_message,
-                            [Tag::Hashtag(tag.clone())],
-                        )
-                        .to_event(&nostr_keys)
-                        .unwrap(),
-                    );
-
-                    match nostr_msg_tx_clone.clone().try_send(nostr_msg) {
-                        Ok(()) => {}
-                        Err(e) => {
-                            error!("Error sending join_game message: {}", e)
-                        }
-                    };
+                        info!("skipping own new game event");
+                    }
                 }
-                Ok(_) => {
-                    //this means you are player 3
+                _ => {
                     info!("current tip: {:?}", last_event.content);
-                    info!("spectate mode");
-                    spectator = true;
-                }
-                Err(error) => {
-                    info!("error: {:?}", error);
-                    spectator = true;
                 }
             }
         } else {
@@ -151,7 +148,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
                     serialized_message,
                     [Tag::Hashtag(tag.clone())],
                 )
-                .to_event(&nostr_keys)
+                .to_event(nostr_keys)
                 .unwrap(),
             );
 
@@ -164,18 +161,14 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
         };
 
         for event in events.drain(..) {
-            if event.pubkey == nostr_keys.public_key() {
-                info!("skipping own event");
-                continue;
-            }
-            if event.content.contains("NewGame") && spectator
-                || event.content.contains("JoinGame") && spectator
+            if (event.content.contains("NewGame") || event.content.contains("JoinGame"))
+                && event.pubkey == nostr_keys.public_key()
             {
                 info!("skipping event");
                 continue;
             }
             if event.content.contains("NewGame") {
-                //sub to messages only from the other players pubkey to stop spam
+                //this means you are player 2 so you only sub to p1 events
                 let new_subscription = Filter::new()
                     .author(event.pubkey)
                     .kind(Kind::Regular(4444))
@@ -183,6 +176,18 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
                     .hashtag(tag.clone());
 
                 info!("sub to player 1 events only {:?}", event.pubkey);
+
+                client.subscribe(vec![new_subscription]).await;
+            }
+            //this means you are player 1 so you only sub to p2 events
+            if event.content.contains("JoinGame") {
+                let new_subscription = Filter::new()
+                    .author(event.pubkey)
+                    .kind(Kind::Regular(4444))
+                    .since(Timestamp::now())
+                    .hashtag(tag.clone());
+
+                info!("sub to player 2 events only {:?}", event.pubkey);
 
                 client.subscribe(vec![new_subscription]).await;
             }
@@ -206,7 +211,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
                 {
                     if event.pubkey != nostr_keys.public_key() {
                         info!("received event: {:?}", event);
-                        if event.content.contains("JoinGame") && !spectator {
+                        if event.content.contains("JoinGame") {
                             let new_subscription = Filter::new()
                                 .author(event.pubkey)
                                 .kind(Kind::Regular(4444))
@@ -299,12 +304,13 @@ fn handle_net_msg(
                             break;
                         }
                     }
-                    NetworkMessage::JoinGame(game_info) => {
+                    NetworkMessage::JoinGame(players) => {
                         if send_net_msg.start {
                             continue;
                         }
 
-                        send_net_msg.p2_ln_address = game_info.player2;
+                        send_net_msg.p2_ln_address = players.p2_name;
+                        send_net_msg.p1_p2_pub_keys.unwrap.push(players.p1_pub_key);
                         //recevied message from p2 so you must be p1
                         send_net_msg.player_type = 1;
                         info!("player type: 1");

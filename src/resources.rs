@@ -1,8 +1,12 @@
 use bevy::{log::error, prelude::Resource};
 use futures::channel::mpsc::{Receiver, Sender};
 
-use nostr_sdk::{serde_json, ClientMessage, EventBuilder, Keys, Kind, Tag};
+use nostr_sdk::{
+    secp256k1::XOnlyPublicKey, serde_json, ClientMessage, EventBuilder, FromBech32, Keys, Kind,
+    Tag, ToBech32,
+};
 use serde::{Deserialize, Serialize};
+use web_sys::window;
 
 use crate::messages::NetworkMessage;
 
@@ -100,13 +104,33 @@ pub struct SendNetMsg {
     pub nostr_keys: Keys,
     pub game_tag: Tag,
     pub player_type: usize,
+    pub p1_p2_pub_keys: Option<Vec<XOnlyPublicKey>>,
     pub local_ln_address: Option<String>,
     pub p2_ln_address: Option<String>,
 }
 
 impl SendNetMsg {
     pub fn new() -> Self {
-        let nostr_keys = Keys::generate();
+        let window = window().expect("no global `window` exists");
+        let local_storage = window
+            .local_storage()
+            .expect("no local storage")
+            .expect("local storage is not available");
+
+        let nostr_keys = if let Ok(Some(nostr_keys)) = local_storage.get_item("nostr_key") {
+            let secret_key = nostr_sdk::key::SecretKey::from_bech32(&nostr_keys).unwrap();
+            let keys = Keys::new(secret_key);
+            keys
+        } else {
+            let nostr_keys = Keys::generate();
+            let secret_key =
+                nostr_sdk::key::SecretKey::to_bech32(&nostr_keys.secret_key().unwrap());
+            local_storage
+                .set_item("nostr_key", &secret_key.unwrap())
+                .expect("Error setting nostr_key in local storage");
+            nostr_keys
+        };
+
         Self {
             send: None,
             start: false,
@@ -114,6 +138,7 @@ impl SendNetMsg {
             nostr_keys,
             game_tag: Tag::Hashtag("".to_string()),
             player_type: 0,
+            p1_p2_pub_keys: None,
             local_ln_address: None,
             p2_ln_address: None,
         }

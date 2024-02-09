@@ -24,8 +24,6 @@ const ROWS: usize = 7;
 const SPACING: f32 = 5.0;
 
 static CEATE_GAME_CALLED: AtomicBool = AtomicBool::new(false);
-static JOIN_GAME_CALLED: AtomicBool = AtomicBool::new(false);
-static LOGIN_CALLED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Serialize)]
 struct ShareData {
@@ -40,52 +38,15 @@ impl Plugin for Connect4GuiPlugin {
         app.add_state::<AppState>()
             .insert_resource(Board::new())
             .add_systems(Startup, (setup, setup_game))
-            .add_systems(Update, nostr_keys.run_if(in_state(AppState::LogIn)))
             .add_systems(
                 Update,
-                listen_for_join_game.run_if(in_state(AppState::JoinGame)),
-            )
-            .add_systems(
-                Update,
-                (
-                    nostr_keys,
-                    check_new_game_system.run_if(in_state(AppState::Menu)),
-                ),
+                (check_new_game_system.run_if(in_state(AppState::Menu)),),
             )
             .add_systems(
                 Update,
                 (place, move_coin, update_text).run_if(in_state(AppState::InGame)),
             );
     }
-}
-
-fn nostr_keys(send_net_msg: ResMut<SendNetMsg>, mut next_state: ResMut<NextState<AppState>>) {
-    if send_net_msg.created_game {
-        if LOGIN_CALLED.load(Ordering::SeqCst) {
-            LOGIN_CALLED.store(false, Ordering::SeqCst);
-
-            let window = web_sys::window().unwrap();
-            let event = web_sys::CustomEvent::new("createGame").unwrap();
-            window.dispatch_event(&event).unwrap();
-            next_state.set(AppState::Menu);
-        }
-    } else {
-        if LOGIN_CALLED.load(Ordering::SeqCst) {
-            LOGIN_CALLED.store(false, Ordering::SeqCst);
-
-            let window = web_sys::window().unwrap();
-            let event = web_sys::CustomEvent::new("joinGame").unwrap();
-            window.dispatch_event(&event).unwrap();
-            next_state.set(AppState::JoinGame);
-        }
-    }
-}
-
-fn listen_for_join_game(mut next_state: ResMut<NextState<AppState>>) {
-    if JOIN_GAME_CALLED.load(Ordering::SeqCst) {
-        JOIN_GAME_CALLED.store(false, Ordering::SeqCst);
-        next_state.set(AppState::InGame);
-    };
 }
 
 fn setup(
@@ -101,7 +62,7 @@ fn setup(
     });
 
     if is_game_id_present() {
-        next_state.set(AppState::LogIn);
+        next_state.set(AppState::InGame);
 
         send_net_msg.created_game = false;
     }
@@ -596,17 +557,16 @@ fn has_winning_move(moves: &[PlayerMove]) -> bool {
 
 #[wasm_bindgen]
 extern "C" {
+    fn hideNewGameButton();
+}
+#[wasm_bindgen]
+extern "C" {
     fn hideCopyButton();
 }
 
 #[wasm_bindgen]
 pub fn check_player_connection_and_hide_button() {
     hideCopyButton();
-}
-
-#[wasm_bindgen]
-extern "C" {
-    fn hideNewGameButton();
 }
 
 #[wasm_bindgen]
@@ -617,12 +577,4 @@ pub fn hide_new_game_button() {
 #[wasm_bindgen]
 pub fn new_game() {
     CEATE_GAME_CALLED.store(true, Ordering::SeqCst);
-}
-#[wasm_bindgen]
-pub fn login() {
-    LOGIN_CALLED.store(true, Ordering::SeqCst);
-}
-#[wasm_bindgen]
-pub fn join_game() {
-    JOIN_GAME_CALLED.store(true, Ordering::SeqCst);
 }

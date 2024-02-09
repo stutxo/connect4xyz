@@ -31,7 +31,7 @@
                 display: flex;
                 justify-content: center;
                 left: 50%;
-                top: 20%;
+                top: 10%;
                 transform: translateX(-50%);
             }
 
@@ -118,10 +118,8 @@
                 }
             }
 
-            #LoginContainer,
             #ShareContainer,
             #NewGameContainer,
-            #JoinGameContainer,
             #UrlContainer,
             #gameIdDisplay {
                 display: none;
@@ -153,20 +151,9 @@
                 <div id="loadingText">Loading...</div>
             </div>
 
-            <!-- Login Container -->
-            <div id="LoginContainer" class="container">
-                <button id="NostrLogin">login with Nostr</button>
-                <button id="GuestLogin">continue as guest</button>
-            </div>
-
             <!-- New Game Container -->
             <div id="NewGameContainer" class="container">
                 <button id="NewGameButton">Create Game 🎲</button>
-            </div>
-
-            <!-- Join Game Container -->
-            <div id="JoinGameContainer" class="container">
-                <button id="JoinGameButton">Join Game 🎲</button>
             </div>
 
             <!-- URL Container -->
@@ -203,92 +190,6 @@
                     window.location.href = window.location.origin;
                 });
 
-            document
-                .getElementById("NostrLogin")
-                .addEventListener("click", function () {
-                    let storedPubKey = localStorage.getItem("pubkey");
-                    if (window.nostr) {
-                        if (storedPubKey) {
-                            console.log(
-                                "Public key from localStorage:",
-                                storedPubKey,
-                            );
-                            const storedUserName =
-                                localStorage.getItem("username");
-                            if (!storedUserName) {
-                                const newgamebutton =
-                                    document.getElementById("NewGameButton");
-                                const joingamebutton =
-                                    document.getElementById("JoinGameButton");
-                                newgamebutton.disabled = true;
-                                joingamebutton.disabled = true;
-                                window.nostr
-                                    .getRelays()
-                                    .then((relays) => {
-                                        console.log("Relays:", relays);
-
-                                        console.error(
-                                            "No username found in local storage.",
-                                        );
-                                        let relay = Object.keys(relays)[0];
-                                        console.log(relay);
-                                        fetchUsername(storedPubKey, relay);
-                                    })
-                                    .catch((error) => {
-                                        console.error(
-                                            "Error fetching relays:",
-                                            error,
-                                        );
-                                    });
-                            }
-                            console.log(
-                                "Username from localStorage:",
-                                storedUserName,
-                            );
-                            document.getElementById(
-                                "postNostrButton",
-                            ).style.display = "flex";
-                        } else {
-                            const newgamebutton =
-                                document.getElementById("NewGameButton");
-                            const joingamebutton =
-                                document.getElementById("JoinGameButton");
-                            newgamebutton.disabled = true;
-                            joingamebutton.disabled = true;
-                            window.nostr
-                                .getPublicKey()
-                                .then((pubkey) => {
-                                    localStorage.setItem("pubkey", pubkey);
-                                    console.log("Public key fetched:", pubkey);
-                                    window.nostr
-                                        .getRelays()
-                                        .then((relays) => {
-                                            console.log("Relays:", relays);
-                                            let relay = Object.keys(relays)[0];
-
-                                            fetchUsername(pubkey, relay);
-                                        })
-                                        .catch((error) => {
-                                            console.error(
-                                                "Error fetching public key:",
-                                                error,
-                                            );
-                                        });
-                                })
-                                .catch((error) => {
-                                    console.error(
-                                        "Error fetching public key:",
-                                        error,
-                                    );
-                                });
-                        }
-                    } else {
-                        console.log(
-                            "Nostr extension is not installed and no public key in localStorage.",
-                        );
-                    }
-                });
-
             //event listeners
 
             window.addEventListener("urlChanged", () => {
@@ -298,18 +199,8 @@
 
             window.addEventListener("wasmLoaded", () => {
                 hideLoading();
-                showLoginButton();
                 displayGameId();
-            });
-
-            window.addEventListener("createGame", () => {
                 showNewGameButton();
-                hideLoginButton();
-            });
-
-            window.addEventListener("joinGame", () => {
-                showJoinGameButton();
-                hideLoginButton();
             });
 
             window.addEventListener("send_board", (event) => {
@@ -409,10 +300,6 @@
             function hideCopyButton() {
                 document.getElementById("UrlContainer").style.display = "none";
             }
-            function showLoginButton() {
-                document.getElementById("LoginContainer").style.display =
-                    "flex";
-            }
             function showNewGameButton() {
                 document.getElementById("NewGameContainer").style.display =
                     "flex";
@@ -420,19 +307,9 @@
             function hideNewGameButton() {
                 document.getElementById("NewGameContainer").style.display =
                     "none";
-                document.getElementById("JoinGameContainer").style.display =
-                    "none";
-            }
-            function showJoinGameButton() {
-                document.getElementById("JoinGameContainer").style.display =
-                    "flex";
             }
             function hideLoading() {
                 document.getElementById("LoadingContainer").style.display =
-                    "none";
-            }
-            function hideLoginButton() {
-                document.getElementById("LoginContainer").style.display =
                     "none";
             }
             function displayShareButton() {
@@ -489,59 +366,6 @@
                             hideModal();
                         },
                     });
-                });
-            }
-
-            function fetchUsername(pubkey, relay, cb) {
-                const newgamebutton = document.getElementById("NewGameButton");
-                const joingamebutton =
-                    document.getElementById("JoinGameButton");
-                joingamebutton.textContent = "fetching username...";
-                newgamebutton.textContent = "fetching username...";
-                const filter = { kinds: [0], authors: [pubkey] };
-                const req = ["REQ", "username", filter];
-
-                let resolved = false;
-
-                console.log(relay);
-
-                sendMessage(pubkey, relay || "wss://nostr.zdb.gg", req, {
-                    onMessage: function (ws, message) {
-                        if (message[0] === "EVENT") {
-                            const content = JSON.parse(message[2].content);
-
-                            console.log("content", content);
-
-                            const username = content.lud16 || content.name;
-                            localStorage.setItem("username", username);
-                            // const loginHeader =
-                            //     document.getElementById("loggedinHeader");
-
-                            // loginHeader.textContent = username;
-                            newgamebutton.disabled = false;
-                            joingamebutton.disabled = false;
-                            joingamebutton.textContent = "Join Game 🎲";
-                            newgamebutton.textContent = "Create Game 🎲";
-                            resolved = true;
-
-                            console.log("username set", username);
-
-                            if (cb) {
-                                cb();
-                            }
-                        }
-                    },
-                    onTimeout: function () {
-                        if (!resolved && cb) {
-                            cb();
-                        } else {
-                            console.log("no username found");
-                            newgamebutton.disabled = false;
-                            joingamebutton.disabled = false;
-                            joingamebutton.textContent = "Join Game 🎲";
-                            newgamebutton.textContent = "Create Game 🎲";
-                        }
-                    },
                 });
             }
 

@@ -1,3 +1,4 @@
+use nostr_sdk::secp256k1::XOnlyPublicKey;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -9,12 +10,24 @@ pub enum NetworkMessage {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Players {
-    pub player1: Option<String>,
-    pub player2: Option<String>,
+    pub p1_name: Option<String>,
+    pub p2_name: Option<String>,
+    pub p1_pubkey: XOnlyPublicKey,
+    pub p2_pubkey: XOnlyPublicKey,
 }
 
 impl Players {
-    pub fn new(player1: Option<String>, player2: Option<String>) -> Self {
-        Self { player1, player2 }
+    pub fn new(
+        p1_name: Option<String>,
+        p2_name: Option<String>,
+        p1_pubkey: XOnlyPublicKey,
+        p2_pubkey: XOnlyPublicKey,
+    ) -> Self {
+        Self {
+            p1_name,
+            p2_name,
+            p1_pubkey,
+            p2_pubkey,
+        }
     }
 }
