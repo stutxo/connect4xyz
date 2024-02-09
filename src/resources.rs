@@ -1,10 +1,7 @@
 use bevy::{log::error, prelude::Resource};
 use futures::channel::mpsc::{Receiver, Sender};
 
-use nostr_sdk::{
-    secp256k1::XOnlyPublicKey, serde_json, ClientMessage, EventBuilder, FromBech32, Keys, Kind,
-    Tag, ToBech32,
-};
+use nostr_sdk::{serde_json, ClientMessage, EventBuilder, FromBech32, Keys, Kind, Tag, ToBech32};
 use serde::{Deserialize, Serialize};
 use web_sys::window;
 
