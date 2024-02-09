@@ -33,7 +33,7 @@ impl Plugin for NostrPlugin {
     }
 }
 
-fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<GameState>) {
+fn setup(mut network_stuff: ResMut<NetworkStuff>, mut game_state: ResMut<GameState>) {
     let window = window().expect("no global `window` exists");
     let local_storage = window
         .local_storage()
@@ -41,7 +41,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<GameS
         .expect("local storage is not available");
 
     if let Ok(Some(username)) = local_storage.get_item("username") {
-        send_net_msg.local_ln_address = Some(username.clone());
+        game_state.local_ln_address = Some(username.clone());
         info!("username found in local storage {:?}", username)
     } else {
         info!("no username found in local storage")
@@ -55,16 +55,16 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<GameS
     let location = web_sys::window().unwrap().location();
     let game_id = location.pathname().unwrap().to_string();
     let tag = format!("connect4.xyz game_id = {}", game_id);
-    send_net_msg.game_tag = Tag::Hashtag(tag.clone());
+    game_state.game_tag = Tag::Hashtag(tag.clone());
 
-    let send_net_msg_clone = send_net_msg.clone();
-    let send_net_msg_clone_2 = send_net_msg.clone();
+    let game_state_clone = game_state.clone();
+    let game_state_clone_2 = game_state.clone();
 
     network_stuff.read = Some(send_rx);
-    send_net_msg.send = Some(nostr_msg_tx);
+    game_state.send = Some(nostr_msg_tx);
 
     spawn_local(async move {
-        let nostr_keys = &send_net_msg_clone.nostr_keys;
+        let nostr_keys = &game_state_clone.nostr_keys;
         let client = Client::new(nostr_keys);
 
         client.add_relay("wss://relay.nostrss.re").await.unwrap();
@@ -99,7 +99,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<GameS
                 Ok(NetworkMessage::NewGame(player)) => {
                     info!("current tip: {:?}", last_event.content);
                     if last_event.pubkey != nostr_keys.public_key() {
-                        let players = if send_net_msg_clone_2.local_ln_address.is_none() {
+                        let players = if game_state_clone_2.local_ln_address.is_none() {
                             Players::new(
                                 player,
                                 None,
@@ -109,7 +109,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<GameS
                         } else {
                             Players::new(
                                 player,
-                                send_net_msg_clone_2.local_ln_address.clone(),
+                                game_state_clone_2.local_ln_address.clone(),
                                 last_event.pubkey.clone(),
                                 nostr_keys.public_key(),
                             )
@@ -144,10 +144,10 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<GameS
             }
         } else {
             info!("current tip: no events");
-            let msg = if send_net_msg_clone_2.local_ln_address.is_none() {
+            let msg = if game_state_clone_2.local_ln_address.is_none() {
                 NetworkMessage::NewGame(None)
             } else {
-                NetworkMessage::NewGame(send_net_msg_clone_2.local_ln_address.clone())
+                NetworkMessage::NewGame(game_state_clone_2.local_ln_address.clone())
             };
 
             let serialized_message = serde_json::to_string(&msg).unwrap();
@@ -252,7 +252,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<GameS
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
 fn handle_net_msg(
     mut network_stuff: ResMut<NetworkStuff>,
-    mut send_net_msg: ResMut<GameState>,
+    mut game_state: ResMut<GameState>,
     mut board: ResMut<Board>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -312,34 +312,34 @@ fn handle_net_msg(
                         }
                     }
                     NetworkMessage::JoinGame(players) => {
-                        if send_net_msg.nostr_keys.public_key() != players.p1_pubkey
-                            && send_net_msg.nostr_keys.public_key() != players.p2_pubkey
+                        if game_state.nostr_keys.public_key() != players.p1_pubkey
+                            && game_state.nostr_keys.public_key() != players.p2_pubkey
                         {
                             info!("not your game {:?}", players);
-                            send_net_msg.player_type = 3;
+                            game_state.player_type = 3;
                             continue;
                         }
 
-                        if send_net_msg.start {
+                        if game_state.start {
                             continue;
                         }
 
-                        send_net_msg.p2_ln_address = players.p2_name;
+                        game_state.p2_ln_address = players.p2_name;
 
-                        send_net_msg.player_type = 1;
+                        game_state.player_type = 1;
                         info!("player type: 1");
-                        send_net_msg.start = true;
+                        game_state.start = true;
                     }
                     NetworkMessage::NewGame(player1) => {
-                        if send_net_msg.start {
+                        if game_state.start {
                             continue;
                         }
 
-                        send_net_msg.p2_ln_address = player1;
+                        game_state.p2_ln_address = player1;
                         //recevied message from p1 so you must be p2
-                        send_net_msg.player_type = 2;
+                        game_state.player_type = 2;
                         info!("player type: 2");
-                        send_net_msg.start = true;
+                        game_state.start = true;
                     }
                 },
 
