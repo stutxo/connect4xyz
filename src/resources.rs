@@ -97,19 +97,18 @@ impl NetworkStuff {
 }
 
 #[derive(Resource, Clone)]
-pub struct SendNetMsg {
+pub struct GameState {
     pub send: Option<Sender<ClientMessage>>,
     pub start: bool,
     pub created_game: bool,
     pub nostr_keys: Keys,
     pub game_tag: Tag,
     pub player_type: usize,
-    pub p1_p2_pub_keys: Option<Vec<XOnlyPublicKey>>,
     pub local_ln_address: Option<String>,
     pub p2_ln_address: Option<String>,
 }
 
-impl SendNetMsg {
+impl GameState {
     pub fn new() -> Self {
         let window = window().expect("no global `window` exists");
         let local_storage = window
@@ -138,7 +137,6 @@ impl SendNetMsg {
             nostr_keys,
             game_tag: Tag::Hashtag("".to_string()),
             player_type: 0,
-            p1_p2_pub_keys: None,
             local_ln_address: None,
             p2_ln_address: None,
         }

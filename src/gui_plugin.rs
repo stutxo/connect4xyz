@@ -9,7 +9,7 @@ extern crate js_sys;
 
 use crate::{
     components::{CoinMove, CoinSlot, DisplayTurn, TextChanges, TopRow},
-    resources::{Board, PlayerMove, SendNetMsg},
+    resources::{Board, GameState, PlayerMove},
     AppState,
 };
 
@@ -52,7 +52,7 @@ impl Plugin for Connect4GuiPlugin {
 fn setup(
     mut commands: Commands,
     mut next_state: ResMut<NextState<AppState>>,
-    mut send_net_msg: ResMut<SendNetMsg>,
+    mut game_state: ResMut<GameState>,
 ) {
     commands.spawn(Camera2dBundle {
         camera_2d: Camera2d {
@@ -64,7 +64,7 @@ fn setup(
     if is_game_id_present() {
         next_state.set(AppState::InGame);
 
-        send_net_msg.created_game = false;
+        game_state.created_game = false;
     }
 }
 
@@ -201,7 +201,7 @@ fn place(
     asset_server: Res<AssetServer>,
     mut update_sprite: Query<&mut Handle<Image>, (With<TopRow>, Without<DisplayTurn>)>,
     mut board: ResMut<Board>,
-    send_net_msg: ResMut<SendNetMsg>,
+    game_state: ResMut<GameState>,
 ) {
     let (camera, camera_transform) = camera_query.single();
 
@@ -249,12 +249,12 @@ fn place(
     }
 
     #[allow(clippy::collapsible_if)]
-    if (board.winner.is_some() || board.draw) && send_net_msg.player_type != 3 {
+    if (board.winner.is_some() || board.draw) && game_state.player_type != 3 {
         let location = web_sys::window().unwrap().location();
         let full_url = location.href().unwrap();
 
-        if board.winner == Some(send_net_msg.player_type) {
-            let msg = if let Some(ref address) = send_net_msg.p2_ln_address {
+        if board.winner == Some(game_state.player_type) {
+            let msg = if let Some(ref address) = game_state.p2_ln_address {
                 format!("I beat {} at #connect4\n\n{}\n\n", address, full_url)
             } else {
                 format!("I beat an unknown player at #connect4\n\n{}\n\n", full_url)
@@ -276,7 +276,7 @@ fn place(
 
             web_sys::window().unwrap().dispatch_event(&event).unwrap();
         } else {
-            let msg = if let Some(ref address) = send_net_msg.p2_ln_address {
+            let msg = if let Some(ref address) = game_state.p2_ln_address {
                 format!("I lost to {} at #connect4\n\n{}\n\n", address, full_url)
             } else {
                 format!(
@@ -308,11 +308,11 @@ fn place(
             if coin.r == 6 && !board.in_progress {
                 *visibility = Visibility::Visible;
 
-                if send_net_msg.player_type == 1 {
+                if game_state.player_type == 1 {
                     for mut handle in &mut update_sprite.iter_mut() {
                         *handle = asset_server.load("red_circle.png");
                     }
-                } else if send_net_msg.player_type == 2 {
+                } else if game_state.player_type == 2 {
                     for mut handle in &mut update_sprite.iter_mut() {
                         *handle = asset_server.load("yellow_circle.png");
                     }
@@ -330,17 +330,17 @@ fn place(
             if board.in_progress {
                 continue;
             }
-            if board.player_turn == send_net_msg.player_type
+            if board.player_turn == game_state.player_type
                 && (mouse.just_pressed(MouseButton::Left)
                     || mouse.just_pressed(MouseButton::Right)
                     || touches.iter_just_pressed().any(|_| true))
             {
                 let row_pos = board.moves.iter().filter(|m| m.column == coin.c).count();
                 if row_pos <= 5 {
-                    let player_move = PlayerMove::new(send_net_msg.player_type, coin.c, row_pos);
+                    let player_move = PlayerMove::new(game_state.player_type, coin.c, row_pos);
                     board.moves.push(player_move);
 
-                    send_net_msg.clone().send_input(coin.c);
+                    game_state.clone().send_input(coin.c);
 
                     let offset_x = -COIN_SIZE.x * (COLUMNS as f32) / 2.0;
                     let offset_y = -COIN_SIZE.y * (ROWS as f32) / 2.0;
@@ -451,9 +451,9 @@ fn update_text(
     asset_server: Res<AssetServer>,
     mut text: Query<&mut Text, With<TextChanges>>,
     board: Res<Board>,
-    send_net_msg: Res<SendNetMsg>,
+    game_state: Res<GameState>,
 ) {
-    if send_net_msg.start {
+    if game_state.start {
         check_player_connection_and_hide_button();
     } else {
         hide_new_game_button();
@@ -463,53 +463,53 @@ fn update_text(
     let mut new_text_value: String;
 
     if board.winner.is_some() {
-        if board.winner == Some(send_net_msg.player_type) {
-            let address_display = match &send_net_msg.local_ln_address {
+        if board.winner == Some(game_state.player_type) {
+            let address_display = match &game_state.local_ln_address {
                 Some(address) => address.clone(),
                 None => "You".to_string(),
             };
-            let enemy_display = match &send_net_msg.p2_ln_address {
+            let enemy_display = match &game_state.p2_ln_address {
                 Some(enemy) => enemy.clone(),
                 None => "Player 2".to_string(),
             };
             new_text_value = format!("{} beat {}", address_display, enemy_display);
         } else {
-            let address_display = match &send_net_msg.local_ln_address {
+            let address_display = match &game_state.local_ln_address {
                 Some(address) => address.clone(),
                 None => "You".to_string(),
             };
-            let enemy_display = match &send_net_msg.p2_ln_address {
+            let enemy_display = match &game_state.p2_ln_address {
                 Some(enemy) => enemy.clone(),
                 None => "Player 2".to_string(),
             };
             new_text_value = format!("{} lost to {}", address_display, enemy_display);
         }
 
-        if send_net_msg.player_type == 3 {
+        if game_state.player_type == 3 {
             new_text_value = "Game Over!!".to_string();
             new_image = match board.winner {
                 Some(1) => Some("red_circle.png"),
                 _ => Some("yellow_circle.png"),
             };
         } else {
-            new_image = match send_net_msg.player_type {
+            new_image = match game_state.player_type {
                 1 => Some("red_circle.png"),
                 2 => Some("yellow_circle.png"),
                 _ => None,
             };
         }
     } else if board.draw {
-        let address_display = match &send_net_msg.local_ln_address {
+        let address_display = match &game_state.local_ln_address {
             Some(address) => address.clone(),
             None => "You".to_string(),
         };
-        let enemy_display = match &send_net_msg.p2_ln_address {
+        let enemy_display = match &game_state.p2_ln_address {
             Some(enemy) => enemy.clone(),
             None => "Player 2".to_string(),
         };
         new_text_value = format!("{} drew against {}", address_display, enemy_display);
         new_image = None;
-    } else if send_net_msg.player_type == 0 {
+    } else if game_state.player_type == 0 {
         new_text_value = "Waiting for player to join...".to_string();
         new_image = None;
     } else {
@@ -519,17 +519,17 @@ fn update_text(
             _ => None,
         };
 
-        new_text_value = match send_net_msg.player_type {
+        new_text_value = match game_state.player_type {
             3 => "Spectating".to_string(),
-            _ if board.player_turn == send_net_msg.player_type => {
-                let address_display = match &send_net_msg.local_ln_address {
+            _ if board.player_turn == game_state.player_type => {
+                let address_display = match &game_state.local_ln_address {
                     Some(address) => address.clone(),
                     None => "".to_string(),
                 };
                 format!("Its your turn {}", address_display)
             }
             _ => {
-                let address_display = match &send_net_msg.p2_ln_address {
+                let address_display = match &game_state.p2_ln_address {
                     Some(address) => address.clone(),
                     None => "Player 2".to_string(),
                 };

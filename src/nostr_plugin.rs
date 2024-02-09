@@ -13,7 +13,7 @@ use web_sys::window;
 use crate::{
     components::CoinMove,
     messages::{NetworkMessage, Players},
-    resources::{Board, NetworkStuff, PlayerMove, SendNetMsg},
+    resources::{Board, GameState, NetworkStuff, PlayerMove},
     AppState,
 };
 
@@ -27,13 +27,13 @@ pub struct NostrPlugin;
 impl Plugin for NostrPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(NetworkStuff::new())
-            .insert_resource(SendNetMsg::new())
+            .insert_resource(GameState::new())
             .add_systems(OnEnter(AppState::InGame), setup)
             .add_systems(Update, handle_net_msg.run_if(in_state(AppState::InGame)));
     }
 }
 
-fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendNetMsg>) {
+fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<GameState>) {
     let window = window().expect("no global `window` exists");
     let local_storage = window
         .local_storage()
@@ -100,9 +100,19 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
                     info!("current tip: {:?}", last_event.content);
                     if last_event.pubkey != nostr_keys.public_key() {
                         let players = if send_net_msg_clone_2.local_ln_address.is_none() {
-                            Players::new(player, None)
+                            Players::new(
+                                player,
+                                None,
+                                last_event.pubkey.clone(),
+                                nostr_keys.public_key(),
+                            )
                         } else {
-                            Players::new(player, send_net_msg_clone_2.local_ln_address.clone())
+                            Players::new(
+                                player,
+                                send_net_msg_clone_2.local_ln_address.clone(),
+                                last_event.pubkey.clone(),
+                                nostr_keys.public_key(),
+                            )
                         };
 
                         let msg = NetworkMessage::JoinGame(players);
@@ -242,7 +252,7 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut send_net_msg: ResMut<SendN
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
 fn handle_net_msg(
     mut network_stuff: ResMut<NetworkStuff>,
-    mut send_net_msg: ResMut<SendNetMsg>,
+    mut send_net_msg: ResMut<GameState>,
     mut board: ResMut<Board>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -252,9 +262,6 @@ fn handle_net_msg(
             match serde_json::from_str::<NetworkMessage>(&message) {
                 Ok(network_message) => match network_message {
                     NetworkMessage::Input(new_input) => {
-                        if send_net_msg.player_type == 0 {
-                            send_net_msg.player_type = 3;
-                        }
                         let row_pos = board.moves.iter().filter(|m| m.column == new_input).count();
                         if row_pos <= 5 {
                             let player_move =
@@ -305,13 +312,20 @@ fn handle_net_msg(
                         }
                     }
                     NetworkMessage::JoinGame(players) => {
+                        if send_net_msg.nostr_keys.public_key() != players.p1_pubkey
+                            && send_net_msg.nostr_keys.public_key() != players.p2_pubkey
+                        {
+                            info!("not your game {:?}", players);
+                            send_net_msg.player_type = 3;
+                            continue;
+                        }
+
                         if send_net_msg.start {
                             continue;
                         }
 
                         send_net_msg.p2_ln_address = players.p2_name;
-                        send_net_msg.p1_p2_pub_keys.unwrap.push(players.p1_pub_key);
-                        //recevied message from p2 so you must be p1
+
                         send_net_msg.player_type = 1;
                         info!("player type: 1");
                         send_net_msg.start = true;
