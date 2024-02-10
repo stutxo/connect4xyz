@@ -24,6 +24,7 @@ const ROWS: usize = 7;
 const SPACING: f32 = 5.0;
 
 static CEATE_GAME_CALLED: AtomicBool = AtomicBool::new(false);
+static JOIN_GAME_CALLED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Serialize)]
 struct ShareData {
@@ -49,32 +50,13 @@ impl Plugin for Connect4GuiPlugin {
     }
 }
 
-fn setup(
-    mut commands: Commands,
-    mut next_state: ResMut<NextState<AppState>>,
-    mut game_state: ResMut<GameState>,
-) {
+fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle {
         camera_2d: Camera2d {
             clear_color: ClearColorConfig::Custom(Color::WHITE),
         },
         ..Default::default()
     });
-
-    if is_game_id_present() {
-        next_state.set(AppState::InGame);
-
-        game_state.created_game = false;
-    }
-}
-
-pub fn is_game_id_present() -> bool {
-    {
-        if let Some(location) = window().and_then(|w| w.location().pathname().ok()) {
-            return !location.is_empty() && location != "/";
-        }
-    }
-    false
 }
 
 fn check_new_game_system(mut next_state: ResMut<NextState<AppState>>) {
@@ -105,6 +87,12 @@ fn check_new_game_system(mut next_state: ResMut<NextState<AppState>>) {
         next_state.set(AppState::InGame);
 
         CEATE_GAME_CALLED.store(false, Ordering::SeqCst);
+    }
+
+    if JOIN_GAME_CALLED.load(Ordering::SeqCst) {
+        next_state.set(AppState::InGame);
+
+        JOIN_GAME_CALLED.store(false, Ordering::SeqCst);
     }
 }
 
@@ -577,4 +565,8 @@ pub fn hide_new_game_button() {
 #[wasm_bindgen]
 pub fn new_game() {
     CEATE_GAME_CALLED.store(true, Ordering::SeqCst);
+}
+#[wasm_bindgen]
+pub fn join_game() {
+    JOIN_GAME_CALLED.store(true, Ordering::SeqCst);
 }

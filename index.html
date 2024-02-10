@@ -218,6 +218,10 @@
                 const path = window.location.pathname.substring(1);
 
                 if (path) {
+                    document.getElementById("JoinGameButton").style.display =
+                        "flex";
+                    document.getElementById("NewGameButton").style.display =
+                        "None";
                     document.getElementById("gameIdDisplay").style.display =
                         "flex";
                     document.getElementById("gameIdDisplay").textContent =

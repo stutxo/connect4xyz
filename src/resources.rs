@@ -97,7 +97,6 @@ impl NetworkStuff {
 pub struct GameState {
     pub send: Option<Sender<ClientMessage>>,
     pub start: bool,
-    pub created_game: bool,
     pub nostr_keys: Keys,
     pub game_tag: Tag,
     pub player_type: usize,
@@ -130,7 +129,6 @@ impl GameState {
         Self {
             send: None,
             start: false,
-            created_game: true,
             nostr_keys,
             game_tag: Tag::Hashtag("".to_string()),
             player_type: 0,
