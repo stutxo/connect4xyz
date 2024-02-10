@@ -157,6 +157,12 @@
                 <input type="text" id="gameInfo" placeholder="Enter name..." />
                 <button id="NewGameButton">Create Game 🎲</button>
                 <button id="JoinGameButton">Join Game 🎲</button>
+                <input
+                    type="text"
+                    id="gameRoomInfo"
+                    placeholder="Enter room name..."
+                />
+                <button id="JoinRoomButton">Join Room</button>
             </div>
 
             <!-- URL Container -->
@@ -212,6 +218,25 @@
                 showCopyBoardButton();
             });
 
+            document
+                .getElementById("JoinRoomButton")
+                .addEventListener("click", function () {
+                    var roomName =
+                        document.getElementById("gameRoomInfo").value;
+                    if (roomName) {
+                        var baseUrl = window.location.href
+                            .split("?")[0]
+                            .split("#")[0];
+
+                        window.location.href =
+                            baseUrl +
+                            (baseUrl.endsWith("/") ? "" : "/") +
+                            encodeURIComponent(roomName);
+                    } else {
+                        alert("Please enter a room name.");
+                    }
+                });
+
             //functions
 
             function displayGameId() {
@@ -221,6 +246,10 @@
                     document.getElementById("JoinGameButton").style.display =
                         "flex";
                     document.getElementById("NewGameButton").style.display =
+                        "None";
+                    document.getElementById("JoinRoomButton").style.display =
+                        "None";
+                    document.getElementById("gameRoomInfo").style.display =
                         "None";
                     document.getElementById("gameIdDisplay").style.display =
                         "flex";

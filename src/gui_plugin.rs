@@ -243,9 +243,12 @@ fn place(
 
         if board.winner == Some(game_state.player_type) {
             let msg = if let Some(ref address) = game_state.p2_ln_address {
-                format!("I beat {} at #connect4\n\n{}\n\n", address, full_url)
+                format!("I beat {} at #connect4\n\n\n{}\n\n", address, full_url)
             } else {
-                format!("I beat an unknown player at #connect4\n\n{}\n\n", full_url)
+                format!(
+                    "I beat an unknown player at #connect4\n\n\n{}\n\n",
+                    full_url
+                )
             };
 
             let share_data = ShareData {
