@@ -37,24 +37,18 @@
 
             div.menu-container .container {
                 flex-direction: column;
-                gap: 10px;
-                padding: 20px;
-                border-radius: 5px;
-                background-color: rgba(242, 242, 242, 0.5);
+                gap: 5px;
                 font-family: "Fira Mono", monospace;
                 color: #333;
-                border: 1px solid #eaeaea;
             }
 
             div.menu-container .container button {
-                background-color: rgba(242, 242, 242, 0.9);
-                color: #333;
-                border: none;
-                padding: 10px 15px;
-                border-radius: 5px;
+                background-color: rgba(242, 242, 242, 0.7);
+                /* border: none; */
+                padding: 5px 10px;
                 cursor: pointer;
                 font-family: "Fira Mono", monospace;
-                transition: background-color 0.3s ease;
+                border: 1px solid #333;
             }
 
             div.menu-container .container button:hover {
@@ -149,7 +143,8 @@
             <!-- New Game Container -->
             <div id="NewGameContainer" class="container">
                 <input type="text" id="gameInfo" placeholder="Enter name..." />
-                <button id="NewGameButton">Create Game 🎲</button>
+                <button id="NewGameButton">New Game 🎲</button>
+                <!-- <button id="BitcoinGameButton">Play for bitcoin 🟠</button> -->
                 <button id="JoinGameButton">Join Game 🎲</button>
                 <input
                     type="text"
