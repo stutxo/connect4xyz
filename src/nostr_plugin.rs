@@ -67,8 +67,26 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut game_state: ResMut<GameSta
         let nostr_keys = &game_state_clone.nostr_keys;
         let client = Client::new(nostr_keys);
 
-        client.add_relay("wss://relay.nostrss.re").await.unwrap();
-        client.add_relay("wss://nostr.lu.ke").await.unwrap();
+        let relays: String = if let Ok(Some(relays)) = local_storage.get_item("Relays") {
+            info!("relays found in local storage {:?}", relays);
+            relays
+        } else {
+            info!("no relays found in local storage");
+            "".to_string()
+        };
+
+        let relay_urls: Vec<&str> = relays.split(',').collect();
+
+        for relays in relay_urls {
+            match client.add_relay(relays).await {
+                Ok(_) => {
+                    info!("relay added: {:?}", relays);
+                }
+                Err(e) => {
+                    error!("error adding relay: {:?}", e);
+                }
+            };
+        }
 
         client.connect().await;
 
@@ -77,7 +95,22 @@ fn setup(mut network_stuff: ResMut<NetworkStuff>, mut game_state: ResMut<GameSta
         spawn_local(async move {
             while let Some(msg) = nostr_msg_rx.next().await {
                 info!("sent event: {:?}", msg);
-                client_clone.clone().send_msg(msg).await.unwrap();
+                match client_clone.clone().send_msg(msg).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        let window = web_sys::window().unwrap();
+                        if let Some(window) = Some(window) {
+                            let alert_message = format!("Error connecting to nostr: {:?}", e);
+                            match window.alert_with_message(&alert_message) {
+                                Ok(_) => {}
+                                Err(js_err) => {
+                                    info!("Error sending alert: {:?}", js_err)
+                                }
+                            }
+                        }
+                        error!("Error sending message: {:?}", e);
+                    }
+                };
             }
         });
 

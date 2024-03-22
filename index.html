@@ -1,457 +1,528 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-        <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-        />
-        <title>connect4.xyz</title>
-        <link data-trunk rel="rust" data-wasm-opt="z" />
-        <link data-trunk rel="icon" href="web_assets/favicon.ico" />
-        <link data-trunk rel="copy-file" href="web_assets/manifest.json" />
-        <link data-trunk rel="copy-file" href="./CNAME" />
-        <link data-trunk rel="copy-dir" href="./assets/" />
 
-        <script async defer src="https://buttons.github.io/buttons.js"></script>
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>connect4.xyz</title>
+    <link data-trunk rel="rust" data-wasm-opt="z" />
+    <link data-trunk rel="icon" href="web_assets/favicon.ico" />
+    <link data-trunk rel="copy-file" href="web_assets/manifest.json" />
+    <link data-trunk rel="copy-file" href="./CNAME" />
+    <link data-trunk rel="copy-dir" href="./assets/" />
 
-        <style>
-            body,
-            html {
-                margin: 0 auto;
-                padding: 0;
-                height: 100%;
-                width: 100%;
-                overflow: hidden;
-            }
+    <script async defer src="https://buttons.github.io/buttons.js"></script>
 
-            div.menu-container .container {
-                position: absolute;
-                display: flex;
-                justify-content: center;
-                left: 50%;
-                top: 40%;
-                transform: translateX(-50%);
-            }
+    <style>
+        body,
+        html {
+            margin: 0 auto;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
 
-            div.menu-container .container {
-                flex-direction: column;
-                gap: 5px;
-                font-family: "Fira Mono", monospace;
-                color: #333;
-            }
+        div.menu-container .container {
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            left: 50%;
+            top: 40%;
+            transform: translateX(-50%);
+        }
 
-            div.menu-container .container button {
-                background-color: rgba(242, 242, 242, 0.7);
-                /* border: none; */
-                padding: 5px 10px;
-                cursor: pointer;
-                font-family: "Fira Mono", monospace;
-                border: 1px solid #333;
-            }
+        div.menu-container .container {
+            flex-direction: column;
+            gap: 5px;
+            font-family: "Fira Mono", monospace;
+            color: #333;
+        }
 
-            div.menu-container .container button:hover {
-                background-color: #e6e6e6;
-            }
+        div.menu-container .container button {
+            background-color: rgba(242, 242, 242, 0.7);
+            /* border: none; */
+            padding: 5px 10px;
+            cursor: pointer;
+            font-family: "Fira Mono", monospace;
+            border: 1px solid #333;
+        }
 
-            #homeButton {
-                border: none;
-                cursor: pointer;
-                font-size: 30px;
-                background-color: rgba(255, 255, 255, 0.8);
-                touch-action: manipulation;
-            }
+        div.menu-container .container button:hover {
+            background-color: #e6e6e6;
+        }
 
-            .gameId {
-                position: absolute;
-                display: flex;
-                justify-content: center;
-                left: 50%;
-                top: 10%;
-                transform: translateX(-50%);
-            }
+        #homeButton {
+            border: none;
+            cursor: pointer;
+            font-size: 30px;
+            background-color: rgba(255, 255, 255, 0.8);
+            touch-action: manipulation;
+        }
 
-            #gameIdDisplay {
-                font-size: 15px;
-                font-family: "Fira Mono", monospace;
-                color: #333;
-            }
+        .gameId {
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            left: 50%;
+            top: 10%;
+            transform: translateX(-50%);
+        }
 
+        #gameIdDisplay {
+            font-size: 15px;
+            font-family: "Fira Mono", monospace;
+            color: #333;
+        }
+
+        .home-container {
+            position: absolute;
+            top: 0;
+            left: 40%;
+        }
+
+        @media (max-width: 800px) {
             .home-container {
                 position: absolute;
                 top: 0;
-                left: 40%;
+                left: 0;
             }
+        }
 
-            @media (max-width: 800px) {
-                .home-container {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                }
-            }
+        .github-container {
+            position: absolute;
+            top: 0;
+            right: 41%;
+        }
 
+        @media (max-width: 800px) {
             .github-container {
                 position: absolute;
                 top: 0;
-                right: 41%;
+                left: 85%;
             }
+        }
 
-            @media (max-width: 800px) {
-                .github-container {
-                    position: absolute;
-                    top: 0;
-                    left: 85%;
-                }
-            }
+        #ShareContainer,
+        #NewGameContainer,
+        #UrlContainer,
+        #JoinGameButton,
+        #gameIdDisplay {
+            display: none;
+        }
+    </style>
+</head>
 
-            #ShareContainer,
-            #NewGameContainer,
-            #UrlContainer,
-            #JoinGameButton,
-            #gameIdDisplay {
-                display: none;
-            }
-        </style>
-    </head>
+<body>
+    <div class="github-container">
+        <a class="github-button" href="https://github.com/stum0/connect4xyz" data-show-count="true"
+            aria-label="Star stum0/connect4xyz on GitHub"></a>
+    </div>
 
-    <body>
-        <div class="github-container">
-            <a
-                class="github-button"
-                href="https://github.com/stum0/connect4xyz"
-                data-show-count="true"
-                aria-label="Star stum0/connect4xyz on GitHub"
-            ></a>
+    <div class="home-container">
+        <button id="homeButton">🏠</button>
+    </div>
+
+    <div class="gameId">
+        <span id="gameIdDisplay"></span>
+    </div>
+
+    <div class="menu-container">
+        <!-- Loading Container -->
+        <div id="LoadingContainer" class="container">
+            <div id="loadingText">Loading...</div>
         </div>
 
-        <div class="home-container">
-            <button id="homeButton">🏠</button>
+        <!-- New Game Container -->
+        <div id="NewGameContainer" class="container">
+            <input type="text" id="gameInfo" placeholder="Enter name..." />
+            <button id="NewGameButton">Create Game 🎲</button>
+            <!-- <button id="BitcoinGameButton">Play for bitcoin 🟠</button> -->
+            <button id="JoinGameButton">Join Game 🎲</button>
+            <input type="text" id="gameidInfo" placeholder="Enter game id..." />
+            <button id="JoinidButton">Join Game</button>
+            <button id="AdvancedSettingsButton">Advanced Settings ⚙️</button>
+            <div id="AdvancedSettingsContent" style="display:none;">
+                <input type="text" id="nostrRelayInput" placeholder="Enter Nostr relay..." />
+                <br>
+                <button id="SetRelayButton">Add Relay</button>
+                <p id="Relays" style="font-size: 10px; background-color: #f0f0f0; padding: 10px; border-radius: 5px;">
+                    Nostr Relays:<br>
+                    <span id="relayList"></span>
+                </p>
+
+            </div>
         </div>
 
-        <div class="gameId">
-            <span id="gameIdDisplay"></span>
-        </div>
-
-        <div class="menu-container">
-            <!-- Loading Container -->
-            <div id="LoadingContainer" class="container">
-                <div id="loadingText">Loading...</div>
-            </div>
-
-            <!-- New Game Container -->
-            <div id="NewGameContainer" class="container">
-                <input type="text" id="gameInfo" placeholder="Enter name..." />
-                <button id="NewGameButton">New Game 🎲</button>
-                <!-- <button id="BitcoinGameButton">Play for bitcoin 🟠</button> -->
-                <button id="JoinGameButton">Join Game 🎲</button>
-                <input
-                    type="text"
-                    id="gameRoomInfo"
-                    placeholder="Enter room name..."
-                />
-                <button id="JoinRoomButton">Join Room</button>
-            </div>
-
-            <!-- URL Container -->
-            <div id="UrlContainer" class="container">
-                <span id="url"></span>
-                <div>
-                    <button id="copyButton" onclick="copyToClipboard()">
-                        Share this URL to play 📋
-                    </button>
-                </div>
-            </div>
-
-            <!-- Share Container -->
-            <div id="ShareContainer" class="container">
-                <button
-                    id="copyBoardButton"
-                    onclick="copyBoardStateToClipboard()"
-                >
-                    Share Result 📋
-                </button>
-                <button id="postNostrButton" onclick="postToNostr()">
-                    Post to Nostr
+        <!-- URL Container -->
+        <div id="UrlContainer" class="container">
+            <span id="url"></span>
+            <div>
+                <button id="copyButton" onclick="copyToClipboard()">
+                    Share this URL to play 📋
                 </button>
             </div>
         </div>
 
-        <script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js"></script>
-        <script>
-            let currentBoardState = "";
+        <!-- Share Container -->
+        <div id="ShareContainer" class="container">
+            <button id="copyBoardButton" onclick="copyBoardStateToClipboard()">
+                Share Result 📋
+            </button>
+            <button id="postNostrButton" onclick="postToNostr()">
+                Post to Nostr
+            </button>
+        </div>
+    </div>
 
-            document
-                .getElementById("homeButton")
-                .addEventListener("click", function () {
-                    window.location.href = window.location.origin;
+
+
+    <script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js"></script>
+    <script>
+        let currentBoardState = "";
+        localStorage.setItem('Relays', ['wss://relay.nostrss.re', 'wss://nostr.lu.ke']);
+
+        document
+            .getElementById("homeButton")
+            .addEventListener("click", function () {
+                window.location.href = window.location.origin;
+            });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var advSettingsButton = document.getElementById('AdvancedSettingsButton');
+            var advSettingsContent = document.getElementById('AdvancedSettingsContent');
+
+            advSettingsButton.addEventListener('click', function () {
+                // Toggle display
+                if (advSettingsContent.style.display === 'none') {
+                    advSettingsContent.style.display = 'block';
+                } else {
+                    advSettingsContent.style.display = 'none';
+                }
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const setRelayButton = document.getElementById('SetRelayButton');
+            const nostrRelayInput = document.getElementById('nostrRelayInput');
+            const relayListSpan = document.getElementById('relayList');
+
+            function loadRelays() {
+                const relays = localStorage.getItem('Relays') ? localStorage.getItem('Relays').split(',') : [];
+                relayListSpan.innerHTML = '';
+
+                relays.forEach((relay, index) => {
+                    const relayItem = document.createElement('div');
+                    relayItem.innerHTML = `${relay} <button class="removeRelay" data-index="${index}" style="font-size: 10px; padding: 1px 3px; margin-left: 5px;">X</button>`;
+                    relayListSpan.appendChild(relayItem);
                 });
+            }
 
-            //event listeners
-
-            window.addEventListener("urlChanged", () => {
-                displayShareButton();
-                displayGameId();
-            });
-
-            window.addEventListener("wasmLoaded", () => {
-                hideLoading();
-                displayGameId();
-                showNewGameButton();
-            });
-
-            window.addEventListener("send_board", (event) => {
-                const board = event.detail;
-                currentBoardState = createConnectFourGrid(board);
-                showCopyBoardButton();
-            });
-
-            document
-                .getElementById("JoinRoomButton")
-                .addEventListener("click", function () {
-                    var roomName =
-                        document.getElementById("gameRoomInfo").value;
-                    if (roomName) {
-                        var baseUrl = window.location.href
-                            .split("?")[0]
-                            .split("#")[0];
-
-                        window.location.href =
-                            baseUrl +
-                            (baseUrl.endsWith("/") ? "" : "/") +
-                            encodeURIComponent(roomName);
-                    } else {
-                        alert("Please enter a room name.");
+            function addRelay(relayInputValue) {
+                if (relayInputValue) {
+                    let relays = localStorage.getItem('Relays') ? localStorage.getItem('Relays').split(',') : [];
+                    if (!relays.includes(relayInputValue)) {
+                        relays.push(relayInputValue);
+                        localStorage.setItem('Relays', relays.join(','));
+                        loadRelays();
                     }
-                });
-
-            //functions
-
-            function displayGameId() {
-                const path = window.location.pathname.substring(1);
-
-                if (path) {
-                    document.getElementById("JoinGameButton").style.display =
-                        "flex";
-                    document.getElementById("NewGameButton").style.display =
-                        "None";
-                    document.getElementById("JoinRoomButton").style.display =
-                        "None";
-                    document.getElementById("gameRoomInfo").style.display =
-                        "None";
-                    document.getElementById("gameIdDisplay").style.display =
-                        "flex";
-                    document.getElementById("gameIdDisplay").textContent =
-                        "Game Room: " + path;
                 }
             }
 
-            function copyBoardStateToClipboard() {
-                navigator.clipboard
-                    .writeText(currentBoardState)
-                    .then(() => {
-                        const copyButton =
-                            document.getElementById("copyBoardButton");
-                        copyButton.textContent = "Copied! 🎉";
-                        setTimeout(() => {
-                            copyButton.textContent = "Share result 📋";
-                        }, 3000);
-                    })
-                    .catch((err) => {
-                        console.error("Failed to copy board state:", err);
-                        document.getElementById("copyBoardButton").textContent =
-                            "Failed to copy! ❌";
-                    });
-            }
-
-            function copyToClipboard() {
-                navigator.clipboard
-                    .writeText(window.location.href)
-                    .then(() => {
-                        const copyButton =
-                            document.getElementById("copyButton");
-                        copyButton.textContent = "Copied URL!";
-                        setTimeout(() => {
-                            copyButton.textContent =
-                                "Share this URL to play 📋";
-                        }, 3000);
-                    })
-                    .catch((err) => {
-                        console.error("Failed to copy board state:", err);
-                        document.getElementById("copyButton").textContent =
-                            "Failed to copy! ❌";
-                    });
-            }
-
-            function createConnectFourGrid(shareData) {
-                const share_data = JSON.parse(shareData);
-                const moves = share_data.moves;
-                const rows = 6;
-                const columns = 7;
-                let grid = new Array(rows);
-                for (let i = 0; i < rows; i++) {
-                    grid[i] = new Array(columns).fill(0);
-                }
-
-                moves.forEach((move) => {
-                    if (grid[move.row][move.column] === 0) {
-                        grid[move.row][move.column] = move.player;
-                    }
-                });
-
-                let gridString = share_data.msg;
-
-                for (let r = rows - 1; r >= 0; r--) {
-                    for (let c = 0; c < columns; c++) {
-                        if (grid[r][c] === 1) {
-                            gridString += "🔴";
-                        } else if (grid[r][c] === 2) {
-                            gridString += "🟡";
-                        } else {
-                            gridString += "⚪";
-                        }
-                    }
-                    gridString += "\n";
-                }
-
-                return gridString;
-            }
-
-            function showCopyBoardButton() {
-                document.getElementById("ShareContainer").style.display =
-                    "flex";
-            }
-            function hideCopyButton() {
-                document.getElementById("UrlContainer").style.display = "none";
-            }
-            function showNewGameButton() {
-                document.getElementById("NewGameContainer").style.display =
-                    "flex";
-            }
-            function hideNewGameButton() {
-                document.getElementById("NewGameContainer").style.display =
-                    "none";
-            }
-            function hideLoading() {
-                document.getElementById("LoadingContainer").style.display =
-                    "none";
-            }
-            function displayShareButton() {
-                const currentUrl = window.location.href;
-                const locationPath = window.location.pathname;
-
-                document.getElementById("url").textContent = currentUrl;
-                document.getElementById("UrlContainer").style.display = "flex";
-            }
-
-            async function postToNostr() {
-                if (!window.nostr) {
-                    alert("Please install a Nostr extension.");
+            function removeRelay(index) {
+                let relays = localStorage.getItem('Relays').split(',');
+                if (relays.length <= 1) {
+                    alert("You must have at least one relay.");
                     return;
                 }
-                let pubkey = localStorage.getItem("pubkey");
+                relays.splice(index, 1);
+                localStorage.setItem('Relays', relays.join(','));
+                loadRelays();
+            }
 
-                let template = {
-                    kind: 1,
-                    pubkey: pubkey,
-                    content: currentBoardState,
-                    tags: [["r", window.location.href]],
-                    created_at: Math.floor(Date.now() / 1000),
-                };
+            loadRelays();
 
-                template.id = await getEventHash(template);
+            setRelayButton.addEventListener('click', function () {
+                const relayInputValue = nostrRelayInput.value.trim();
+                addRelay(relayInputValue);
+            });
 
-                let resolved = false;
+            document.addEventListener('click', function (event) {
+                if (event.target.classList.contains('removeRelay')) {
+                    const index = event.target.getAttribute('data-index');
+                    removeRelay(parseInt(index, 10));
+                }
+            });
+        });
 
-                console.log(template);
 
-                const nostrPostButton =
-                    document.getElementById("postNostrButton");
-                nostrPostButton.textContent = "Posted to Nostr! 🎉";
-                nostrPostButton.disabled = true;
 
-                window.nostr.signEvent(template).then(function (event) {
-                    sendMessage("wss://relay.noswhere.com", ["EVENT", event], {
-                        onMessage: function (ws, message) {
-                            if (message[0] === "OK") {
-                                if (!message[2]) {
-                                    alert("Failed to publish your event!");
-                                }
+        //event listeners
 
-                                resolved = true;
-                                hideModal();
-                            }
-                        },
-                        onTimeout: function () {
-                            if (!resolved) {
+        window.addEventListener("urlChanged", () => {
+            displayShareButton();
+            displayGameId();
+        });
+
+        window.addEventListener("wasmLoaded", () => {
+            hideLoading();
+            displayGameId();
+            showNewGameButton();
+        });
+
+        window.addEventListener("send_board", (event) => {
+            const board = event.detail;
+            currentBoardState = createConnectFourGrid(board);
+            showCopyBoardButton();
+        });
+
+        document
+            .getElementById("JoinidButton")
+            .addEventListener("click", function () {
+                var idName =
+                    document.getElementById("gameidInfo").value;
+                if (idName) {
+                    var baseUrl = window.location.href
+                        .split("?")[0]
+                        .split("#")[0];
+
+                    window.location.href =
+                        baseUrl +
+                        (baseUrl.endsWith("/") ? "" : "/") +
+                        encodeURIComponent(idName);
+                } else {
+                    alert("Please enter a game id. (6 character id)");
+                }
+            });
+
+        //functions
+
+        function displayGameId() {
+            const path = window.location.pathname.substring(1);
+
+            if (path) {
+                document.getElementById("JoinGameButton").style.display =
+                    "flex";
+                document.getElementById("NewGameButton").style.display =
+                    "None";
+                document.getElementById("JoinidButton").style.display =
+                    "None";
+                document.getElementById("gameidInfo").style.display =
+                    "None";
+                document.getElementById("gameIdDisplay").style.display =
+                    "flex";
+                document.getElementById("gameIdDisplay").textContent =
+                    "Game id: " + path;
+            }
+        }
+
+        function copyBoardStateToClipboard() {
+            navigator.clipboard
+                .writeText(currentBoardState)
+                .then(() => {
+                    const copyButton =
+                        document.getElementById("copyBoardButton");
+                    copyButton.textContent = "Copied! 🎉";
+                    setTimeout(() => {
+                        copyButton.textContent = "Share result 📋";
+                    }, 3000);
+                })
+                .catch((err) => {
+                    console.error("Failed to copy board state:", err);
+                    document.getElementById("copyBoardButton").textContent =
+                        "Failed to copy! ❌";
+                });
+        }
+
+        function copyToClipboard() {
+            navigator.clipboard
+                .writeText(window.location.href)
+                .then(() => {
+                    const copyButton =
+                        document.getElementById("copyButton");
+                    copyButton.textContent = "Copied URL!";
+                    setTimeout(() => {
+                        copyButton.textContent =
+                            "Share this URL to play 📋";
+                    }, 3000);
+                })
+                .catch((err) => {
+                    console.error("Failed to copy board state:", err);
+                    document.getElementById("copyButton").textContent =
+                        "Failed to copy! ❌";
+                });
+        }
+
+        function createConnectFourGrid(shareData) {
+            const share_data = JSON.parse(shareData);
+            const moves = share_data.moves;
+            const rows = 6;
+            const columns = 7;
+            let grid = new Array(rows);
+            for (let i = 0; i < rows; i++) {
+                grid[i] = new Array(columns).fill(0);
+            }
+
+            moves.forEach((move) => {
+                if (grid[move.row][move.column] === 0) {
+                    grid[move.row][move.column] = move.player;
+                }
+            });
+
+            let gridString = share_data.msg;
+
+            for (let r = rows - 1; r >= 0; r--) {
+                for (let c = 0; c < columns; c++) {
+                    if (grid[r][c] === 1) {
+                        gridString += "🔴";
+                    } else if (grid[r][c] === 2) {
+                        gridString += "🟡";
+                    } else {
+                        gridString += "⚪";
+                    }
+                }
+                gridString += "\n";
+            }
+
+            return gridString;
+        }
+
+        function showCopyBoardButton() {
+            document.getElementById("ShareContainer").style.display =
+                "flex";
+        }
+        function hideCopyButton() {
+            document.getElementById("UrlContainer").style.display = "none";
+        }
+        function showNewGameButton() {
+            document.getElementById("NewGameContainer").style.display =
+                "flex";
+        }
+        function hideNewGameButton() {
+            document.getElementById("NewGameContainer").style.display =
+                "none";
+        }
+        function hideLoading() {
+            document.getElementById("LoadingContainer").style.display =
+                "none";
+        }
+        function displayShareButton() {
+            const currentUrl = window.location.href;
+            const locationPath = window.location.pathname;
+
+            document.getElementById("url").textContent = currentUrl;
+            document.getElementById("UrlContainer").style.display = "flex";
+        }
+
+        async function postToNostr() {
+            if (!window.nostr) {
+                alert("Please install a Nostr extension.");
+                return;
+            }
+            let pubkey = localStorage.getItem("pubkey");
+
+            let template = {
+                kind: 1,
+                pubkey: pubkey,
+                content: currentBoardState,
+                tags: [["r", window.location.href]],
+                created_at: Math.floor(Date.now() / 1000),
+            };
+
+            template.id = await getEventHash(template);
+
+            let resolved = false;
+
+            console.log(template);
+
+            const nostrPostButton =
+                document.getElementById("postNostrButton");
+            nostrPostButton.textContent = "Posted to Nostr! 🎉";
+            nostrPostButton.disabled = true;
+
+            window.nostr.signEvent(template).then(function (event) {
+                sendMessage("wss://relay.noswhere.com", ["EVENT", event], {
+                    onMessage: function (ws, message) {
+                        if (message[0] === "OK") {
+                            if (!message[2]) {
                                 alert("Failed to publish your event!");
                             }
 
+                            resolved = true;
                             hideModal();
-                        },
-                    });
-                });
-            }
-
-            function sendMessage(
-                pubkey,
-                url,
-                message,
-                { onMessage, onTimeout },
-            ) {
-                const ws = new WebSocket(url);
-
-                ws.onopen = function () {
-                    const filter = { kinds: [0], authors: [pubkey] };
-
-                    ws.send(JSON.stringify(message));
-                    console.log("sent", message);
-                };
-
-                ws.onmessage = function (e) {
-                    try {
-                        const message = JSON.parse(e.data);
-
-                        if (Array.isArray(message)) {
-                            onMessage(ws, message);
                         }
-                    } catch (e) {
-                        // pass
+                    },
+                    onTimeout: function () {
+                        if (!resolved) {
+                            alert("Failed to publish your event!");
+                        }
+
+                        hideModal();
+                    },
+                });
+            });
+        }
+
+        function sendMessage(
+            pubkey,
+            url,
+            message,
+            { onMessage, onTimeout },
+        ) {
+            const ws = new WebSocket(url);
+
+            ws.onopen = function () {
+                const filter = { kinds: [0], authors: [pubkey] };
+
+                ws.send(JSON.stringify(message));
+                console.log("sent", message);
+            };
+
+            ws.onmessage = function (e) {
+                try {
+                    const message = JSON.parse(e.data);
+
+                    if (Array.isArray(message)) {
+                        onMessage(ws, message);
                     }
-                };
+                } catch (e) {
+                    // pass
+                }
+            };
 
-                setTimeout(function () {
-                    ws.close();
-                    onTimeout(ws);
-                }, 50_00);
-            }
+            setTimeout(function () {
+                ws.close();
+                onTimeout(ws);
+            }, 50_00);
+        }
 
-            function getEventHash(e) {
-                return sha256(
-                    JSON.stringify([
-                        0,
-                        e.pubkey,
-                        e.created_at,
-                        e.kind,
-                        e.tags,
-                        e.content,
-                    ]),
-                );
-            }
+        function getEventHash(e) {
+            return sha256(
+                JSON.stringify([
+                    0,
+                    e.pubkey,
+                    e.created_at,
+                    e.kind,
+                    e.tags,
+                    e.content,
+                ]),
+            );
+        }
 
-            async function sha256(input) {
-                const textAsBuffer = new TextEncoder().encode(input);
-                const hashBuffer = await crypto.subtle.digest(
-                    "SHA-256",
-                    textAsBuffer,
-                );
-                const hashArray = Array.from(new Uint8Array(hashBuffer));
+        async function sha256(input) {
+            const textAsBuffer = new TextEncoder().encode(input);
+            const hashBuffer = await crypto.subtle.digest(
+                "SHA-256",
+                textAsBuffer,
+            );
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
 
-                return hashArray
-                    .map((item) => item.toString(16).padStart(2, "0"))
-                    .join("");
-            }
-        </script>
-    </body>
+            return hashArray
+                .map((item) => item.toString(16).padStart(2, "0"))
+                .join("");
+        }
+    </script>
+</body>
+
 </html>
