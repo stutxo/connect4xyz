@@ -59,6 +59,7 @@
             font-size: 30px;
             background-color: rgba(255, 255, 255, 0.8);
             touch-action: manipulation;
+            font-family: "Fira Mono", monospace;
         }
 
         .gameId {
@@ -80,6 +81,9 @@
             position: absolute;
             top: 0;
             left: 40%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         @media (max-width: 800px) {
@@ -87,6 +91,9 @@
                 position: absolute;
                 top: 0;
                 left: 0;
+                display: flex;
+                align-items: center;
+                gap: 10px;
             }
         }
 
@@ -122,6 +129,7 @@
 
     <div class="home-container">
         <button id="homeButton">🏠</button>
+        <p>connect4.xyz</p>
     </div>
 
     <div class="gameId">
@@ -214,7 +222,7 @@
 
                 relays.forEach((relay, index) => {
                     const relayItem = document.createElement('div');
-                    relayItem.innerHTML = `${relay} <button class="removeRelay" data-index="${index}" style="font-size: 10px; padding: 1px 3px; margin-left: 5px;">X</button>`;
+                    relayItem.innerHTML = `${relay} <button class="removeRelay" data-index="${index}" style="font-size: 10px; touch-action: manipulation; padding: 1px 3px; margin-left: 5px;">❌"</button>`;
                     relayListSpan.appendChild(relayItem);
                 });
             }
