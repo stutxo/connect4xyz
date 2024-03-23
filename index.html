@@ -22,6 +22,7 @@
             height: 100%;
             width: 100%;
             overflow: hidden;
+            color: #333;
         }
 
         div.menu-container .container {
@@ -47,6 +48,7 @@
             cursor: pointer;
             font-family: "Fira Mono", monospace;
             border: 1px solid #333;
+            touch-action: manipulation;
         }
 
         div.menu-container .container button:hover {
@@ -155,7 +157,7 @@
                 <input type="text" id="nostrRelayInput" placeholder="Enter Nostr relay..." />
                 <br>
                 <button id="SetRelayButton">Add Relay</button>
-                <p id="Relays" style="font-size: 10px; background-color: #f0f0f0; padding: 10px; border-radius: 5px;">
+                <p id="Relays" style="font-size: 10px; background-color: #f0f0f0; padding: 2px;">
                     Nostr Relays:<br>
                     <span id="relayList"></span>
                 </p>
@@ -222,7 +224,7 @@
 
                 relays.forEach((relay, index) => {
                     const relayItem = document.createElement('div');
-                    relayItem.innerHTML = `${relay} <button class="removeRelay" data-index="${index}" style="font-size: 10px; border: none; cursor: pointer; touch-action: manipulation; padding: 1px 3px; margin-left: 5px;">❌</button>`;
+                    relayItem.innerHTML = `${relay} <button class="removeRelay" data-index="${index}" style="font-size: 10px; border: none; cursor: pointer; touch-action: manipulation;">❌</button>`;
                     relayListSpan.appendChild(relayItem);
                 });
             }
