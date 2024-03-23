@@ -80,6 +80,9 @@
             position: absolute;
             top: 0;
             left: 40%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         @media (max-width: 800px) {
@@ -87,6 +90,9 @@
                 position: absolute;
                 top: 0;
                 left: 0;
+                display: flex;
+                align-items: center;
+                gap: 10px;
             }
         }
 
@@ -94,6 +100,7 @@
             position: absolute;
             top: 0;
             right: 41%;
+
         }
 
         @media (max-width: 800px) {
@@ -122,6 +129,7 @@
 
     <div class="home-container">
         <button id="homeButton">🏠</button>
+        <p>connect4.xyz</p>
     </div>
 
     <div class="gameId">
@@ -214,7 +222,7 @@
 
                 relays.forEach((relay, index) => {
                     const relayItem = document.createElement('div');
-                    relayItem.innerHTML = `${relay} <button class="removeRelay" data-index="${index}" style="font-size: 10px; padding: 1px 3px; margin-left: 5px;">X</button>`;
+                    relayItem.innerHTML = `${relay} <button class="removeRelay" data-index="${index}" style="font-size: 10px; touch-action: manipulation; padding: 1px 3px; margin-left: 5px;">❌"</button>`;
                     relayListSpan.appendChild(relayItem);
                 });
             }
@@ -299,21 +307,27 @@
         //functions
 
         function displayGameId() {
-            const path = window.location.pathname.substring(1);
+            const path = window.location.pathname;
+            const parts = path.split('&');
 
-            if (path) {
-                document.getElementById("JoinGameButton").style.display =
-                    "flex";
-                document.getElementById("NewGameButton").style.display =
-                    "None";
-                document.getElementById("JoinidButton").style.display =
-                    "None";
-                document.getElementById("gameidInfo").style.display =
-                    "None";
-                document.getElementById("gameIdDisplay").style.display =
-                    "flex";
-                document.getElementById("gameIdDisplay").textContent =
-                    "Game id: " + path;
+            let gameId = '';
+
+            if (parts.length > 1) {
+                gameId = parts[1];
+            } else {
+                gameId = window.location.pathname.substring(1);
+            }
+
+            if (gameId) {
+                document.getElementById("JoinGameButton").style.display = "flex";
+                document.getElementById("NewGameButton").style.display = "none";
+                document.getElementById("JoinidButton").style.display = "none";
+                document.getElementById("gameidInfo").style.display = "none";
+
+
+                const gameDisplayElement = document.getElementById("gameIdDisplay");
+                gameDisplayElement.style.display = "flex";
+                gameDisplayElement.textContent = "Game id: " + gameId;
             }
         }
 
