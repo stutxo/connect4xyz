@@ -191,7 +191,7 @@
     <script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js"></script>
     <script>
         let currentBoardState = "";
-        localStorage.setItem('Relays', ['wss://relay.nostr.net', 'wss://nostr.lu.ke']);
+        localStorage.setItem('Relays', ['wss://relay.nostr.net', 'wss://nostr.wine']);
 
         document
             .getElementById("homeButton")
@@ -452,7 +452,7 @@
             nostrPostButton.disabled = true;
 
             window.nostr.signEvent(template).then(function (event) {
-                sendMessage("wss://relay.noswhere.com", ["EVENT", event], {
+                sendMessage("wss://nostr.wine", ["EVENT", event], {
                     onMessage: function (ws, message) {
                         if (message[0] === "OK") {
                             if (!message[2]) {
